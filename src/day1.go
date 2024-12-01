@@ -50,7 +50,7 @@ func main() {
 		slices.Sort(rightList)
 
 		// Part 1:
-		sum_diff := 0
+		sumDiff := 0
 
 		for i, l := range leftList {
 			r := rightList[i]
@@ -59,14 +59,14 @@ func main() {
 				diff = -diff
 			}
 
-			sum_diff += diff
+			sumDiff += diff
 		}
 
 		fmt.Print("Sum of differences: ")
-		fmt.Println(sum_diff)
+		fmt.Println(sumDiff)
 
 		// Part 2:
-		similarity_score := 0
+		similarityScore := 0
 
 		rcounts := map[int]int{}
 		for _, v := range rightList {
@@ -74,10 +74,10 @@ func main() {
 		}
 
 		for _, v := range leftList {
-			similarity_score += v * rcounts[v]
+			similarityScore += v * rcounts[v]
 		}
 
 		fmt.Print("Similarity score: ")
-		fmt.Println(similarity_score)
+		fmt.Println(similarityScore)
 	}
 }
