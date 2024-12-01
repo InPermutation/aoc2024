@@ -42,10 +42,14 @@ func main() {
 			}
 			rightList = append(rightList, r)
 		}
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
 
 		slices.Sort(leftList)
 		slices.Sort(rightList)
 
+		// Part 1:
 		sum_diff := 0
 
 		for i, l := range leftList {
@@ -58,11 +62,22 @@ func main() {
 			sum_diff += diff
 		}
 
-		if err := scanner.Err(); err != nil {
-			log.Fatal(err)
-		}
-
 		fmt.Print("Sum of differences: ")
 		fmt.Println(sum_diff)
+
+		// Part 2:
+		similarity_score := 0
+
+		rcounts := map[int]int{}
+		for _, v := range rightList {
+			rcounts[v]++
+		}
+
+		for _, v := range leftList {
+			similarity_score += v * rcounts[v]
+		}
+
+		fmt.Print("Similarity score: ")
+		fmt.Println(similarity_score)
 	}
 }
