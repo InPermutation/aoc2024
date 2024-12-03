@@ -54,6 +54,20 @@ func main() {
 
 		fmt.Print("Safe: ")
 		fmt.Println(safes)
+
+		// Part 2:
+		safes = 0
+		for _, report := range reports {
+			safe := isSafe(report)
+			if safe {
+				safes++
+			} else if safeWithDampener(report) {
+				safes++
+			}
+		}
+
+		fmt.Printf("Safe (w/Problem Dampener): ")
+		fmt.Println(safes)
 	}
 }
 
@@ -82,4 +96,21 @@ func isSafe(report []int) bool {
 		last = v
 	}
 	return asc || desc
+}
+
+func safeWithDampener(report []int) bool {
+	for d := 0; d < len(report); d++ {
+		dampened := []int{}
+		// hugely wasteful copies
+		for i, v := range report {
+			if i != d {
+				dampened = append(dampened, v)
+			}
+		}
+		if isSafe(dampened) {
+			return true
+		}
+	}
+
+	return false
 }
