@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-type set map[int]bool
+type page string
+type set map[page]bool
 
 func main() {
 	for _, fname := range []string{
@@ -26,7 +27,7 @@ func main() {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 
-		orderingRules := map[int]set{}
+		orderingRules := map[page]set{}
 		for scanner.Scan() {
 			line := scanner.Text()
 			if line == "" {
@@ -36,14 +37,7 @@ func main() {
 			if len(tokens) != 2 {
 				panic(tokens)
 			}
-			l, err := strconv.Atoi(tokens[0])
-			if err != nil {
-				log.Fatal(err)
-			}
-			r, err := strconv.Atoi(tokens[1])
-			if err != nil {
-				log.Fatal(err)
-			}
+			l, r := page(tokens[0]), page(tokens[1])
 			if orderingRules[l] == nil {
 				orderingRules[l] = set{}
 			}
@@ -57,18 +51,10 @@ func main() {
 		for scanner.Scan() {
 			tokens := strings.Split(scanner.Text(), ",")
 
-			nums := make([]int, len(tokens))
-			for i, v := range tokens {
-				nums[i], err = strconv.Atoi(v)
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-
 			ok := true
-			for i, l := range nums {
-				for _, r := range nums[i+1:] {
-					if orderingRules[r][l] {
+			for i, l := range tokens {
+				for _, r := range tokens[i+1:] {
+					if orderingRules[page(r)][page(l)] {
 						ok = false
 						break
 					}
@@ -77,10 +63,13 @@ func main() {
 			}
 
 			if ok {
-				if len(nums)%2 == 0 {
+				if len(tokens)%2 == 0 {
 					log.Fatal("Assume line must have odd number of updates")
 				}
-				middlePageNumber := nums[len(nums)/2]
+				middlePageNumber, err := strconv.Atoi(tokens[len(tokens)/2])
+				if err != nil {
+					log.Fatal(err)
+				}
 				middlePageNumbersOk += middlePageNumber
 			}
 		}
