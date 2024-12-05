@@ -71,5 +71,34 @@ func main() {
 
 		fmt.Print("Found XMAS: ")
 		fmt.Println(found)
+
+		// Part 2:
+		found = 0
+		for y, line := range lines {
+			for x, ch := range line {
+				if ch != 'A' {
+					continue
+				}
+				const Target = "MAS"
+				dir := func(dx, dy int) int {
+					for o := -1; o <= 1; o++ {
+						it := safeGet(x+(o*dx), y+(o*dy))
+						if it != Target[o+1] {
+							return 0
+						}
+					}
+					return 1
+				}
+
+				withCenter := dir(1, 1) + dir(-1, -1) + dir(1, -1) + dir(-1, 1)
+				if withCenter == 2 {
+					found++
+				}
+			}
+		}
+
+		fmt.Print("Found X-MAS: ")
+		fmt.Println(found)
+
 	}
 }
