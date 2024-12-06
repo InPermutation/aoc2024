@@ -19,6 +19,7 @@ type state struct {
 	board    [][]rune
 
 	distinct int
+	dejaVu   map[pos]bool
 }
 
 func NewStateFromFile(fname string) (rval *state) {
@@ -33,7 +34,8 @@ func NewStateFromFile(fname string) (rval *state) {
 	scanner := bufio.NewScanner(file)
 
 	rval = &state{
-		board: [][]rune{},
+		board:  [][]rune{},
+		dejaVu: map[pos]bool{},
 	}
 
 	for scanner.Scan() {
@@ -88,6 +90,11 @@ func (p *pos) turn90() {
 	}
 }
 func (s *state) step() bool {
+	if s.dejaVu[s.position] {
+		return false
+	}
+	s.dejaVu[s.position] = true
+
 	p := &s.position
 	if s.board[p.y][p.x] != 'X' {
 		s.distinct++
@@ -114,6 +121,8 @@ func (s *state) DeepCopy() (rval *state) {
 	rval = &state{
 		position: s.position,
 		board:    make([][]rune, len(s.board)),
+		// Doesn't copy dejaVu:
+		dejaVu: map[pos]bool{},
 	}
 
 	for y, row0 := range s.board {
@@ -154,5 +163,32 @@ func main() {
 		// Part 1:
 		fmt.Println("distinct positions: ")
 		fmt.Println(state.distinct)
+
+		// Part 2:
+		c := 0
+		for oy, r0 := range state0.board {
+			for ox, v := range r0 {
+				if v != '.' {
+					continue
+				}
+				state := state0.DeepCopy()
+				state.board[oy][ox] = '#'
+				for true {
+					if state.something_in_front() {
+						state.position.turn90()
+					} else {
+						if !state.step() {
+							break
+						}
+					}
+				}
+
+				if state.dejaVu[state.position] {
+					c++
+				}
+			}
+		}
+		fmt.Println("Obstruction positions: ")
+		fmt.Println(c)
 	}
 }
