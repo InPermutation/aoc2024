@@ -25,10 +25,10 @@ func main() {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 
-		var x, y int
-		var dir rune
+		var x0, y0 int
+		var dir0 rune
 
-		board := [][]rune{}
+		board0 := [][]rune{}
 
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -37,17 +37,20 @@ func main() {
 			for i, b := range line {
 				bytes[i] = b
 				if b == '^' {
-					dir = b
-					x = i
-					y = len(board)
+					dir0 = b
+					x0 = i
+					y0 = len(board0)
 				}
 			}
 
-			board = append(board, bytes)
+			board0 = append(board0, bytes)
 		}
 		if err := scanner.Err(); err != nil {
 			log.Fatal(err)
 		}
+
+		x, y, dir := x0, y0, dir0
+		board := deepcopy(board0)
 		fmt.Println(x, y, dir)
 
 		distinct := 0
@@ -116,4 +119,19 @@ func main() {
 		fmt.Println("distinct positions: ")
 		fmt.Println(distinct)
 	}
+}
+
+func deepcopy(board0 [][]rune) [][]rune {
+	rval := make([][]rune, len(board0))
+	for y, row0 := range board0 {
+		row := make([]rune, len(row0))
+
+		for x, o := range row0 {
+			row[x] = o
+		}
+
+		rval[y] = row
+	}
+
+	return rval
 }
