@@ -8,11 +8,15 @@ import (
 )
 
 type direction rune
+type pos struct {
+	x   int
+	y   int
+	dir direction
+}
+
 type state struct {
-	x     int
-	y     int
-	dir   direction
-	board [][]rune
+	position pos
+	board    [][]rune
 
 	distinct int
 }
@@ -39,9 +43,9 @@ func NewStateFromFile(fname string) (rval *state) {
 		for i, b := range line {
 			bytes[i] = b
 			if b == '^' {
-				rval.x = i
-				rval.y = len(rval.board)
-				rval.dir = direction(b)
+				rval.position.x = i
+				rval.position.y = len(rval.board)
+				rval.position.dir = direction(b)
 			}
 		}
 
@@ -53,22 +57,23 @@ func NewStateFromFile(fname string) (rval *state) {
 
 	return
 }
-func (p *state) something_in_front() bool {
+func (s state) something_in_front() bool {
+	p := s.position
 	switch p.dir {
 	case '^':
-		return p.y > 0 && p.board[p.y-1][p.x] == '#'
+		return p.y > 0 && s.board[p.y-1][p.x] == '#'
 	case '<':
-		return p.x > 0 && p.board[p.y][p.x-1] == '#'
+		return p.x > 0 && s.board[p.y][p.x-1] == '#'
 	case 'v':
-		return p.y+1 < len(p.board) && p.board[p.y+1][p.x] == '#'
+		return p.y+1 < len(s.board) && s.board[p.y+1][p.x] == '#'
 	case '>':
-		return p.x+1 < len(p.board[p.y]) && p.board[p.y][p.x+1] == '#'
+		return p.x+1 < len(s.board[p.y]) && s.board[p.y][p.x+1] == '#'
 	default:
 		fmt.Println("err", p.dir)
-		panic(*p)
+		panic(p)
 	}
 }
-func (p *state) turn90() {
+func (p *pos) turn90() {
 	switch p.dir {
 	case '^':
 		p.dir = '>'
@@ -82,21 +87,22 @@ func (p *state) turn90() {
 		panic(*p)
 	}
 }
-func (p *state) step() bool {
-	if p.board[p.y][p.x] != 'X' {
-		p.distinct++
+func (s *state) step() bool {
+	p := &s.position
+	if s.board[p.y][p.x] != 'X' {
+		s.distinct++
 	}
-	p.board[p.y][p.x] = 'X'
+	s.board[p.y][p.x] = 'X'
 	switch p.dir {
 	case '^':
 		p.y--
 		return p.y >= 0
 	case '>':
 		p.x++
-		return p.x < len(p.board[p.y])
+		return p.x < len(s.board[p.y])
 	case 'v':
 		p.y++
-		return p.y < len(p.board)
+		return p.y < len(s.board)
 	case '<':
 		p.x--
 		return p.x >= 0
@@ -104,15 +110,13 @@ func (p *state) step() bool {
 		panic(*p)
 	}
 }
-func (p *state) DeepCopy() (rval *state) {
+func (s *state) DeepCopy() (rval *state) {
 	rval = &state{
-		x:     p.x,
-		y:     p.y,
-		dir:   p.dir,
-		board: make([][]rune, len(p.board)),
+		position: s.position,
+		board:    make([][]rune, len(s.board)),
 	}
 
-	for y, row0 := range p.board {
+	for y, row0 := range s.board {
 		row := make([]rune, len(row0))
 
 		for x, o := range row0 {
@@ -139,7 +143,7 @@ func main() {
 
 		for true {
 			if state.something_in_front() {
-				state.turn90()
+				state.position.turn90()
 			} else {
 				if !state.step() {
 					break
