@@ -166,9 +166,10 @@ func main() {
 
 		// Part 2:
 		c := 0
+		originalBoard := state.board
 		for oy, r0 := range state0.board {
 			for ox, v := range r0 {
-				if v != '.' {
+				if v != '.' || originalBoard[oy][ox] != 'X' {
 					continue
 				}
 				state := state0.DeepCopy()
