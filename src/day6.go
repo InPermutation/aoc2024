@@ -15,8 +15,8 @@ type pos struct {
 }
 
 type state struct {
-	position pos
-	board    [][]rune
+	pos
+	board [][]rune
 
 	distinct int
 	dejaVu   map[pos]bool
@@ -45,9 +45,9 @@ func NewStateFromFile(fname string) (rval *state) {
 		for i, b := range line {
 			bytes[i] = b
 			if b == '^' {
-				rval.position.x = i
-				rval.position.y = len(rval.board)
-				rval.position.dir = direction(b)
+				rval.x = i
+				rval.y = len(rval.board)
+				rval.dir = direction(b)
 			}
 		}
 
@@ -60,19 +60,18 @@ func NewStateFromFile(fname string) (rval *state) {
 	return
 }
 func (s state) something_in_front() bool {
-	p := s.position
-	switch p.dir {
+	switch s.dir {
 	case '^':
-		return p.y > 0 && s.board[p.y-1][p.x] == '#'
+		return s.y > 0 && s.board[s.y-1][s.x] == '#'
 	case '<':
-		return p.x > 0 && s.board[p.y][p.x-1] == '#'
+		return s.x > 0 && s.board[s.y][s.x-1] == '#'
 	case 'v':
-		return p.y+1 < len(s.board) && s.board[p.y+1][p.x] == '#'
+		return s.y+1 < len(s.board) && s.board[s.y+1][s.x] == '#'
 	case '>':
-		return p.x+1 < len(s.board[p.y]) && s.board[p.y][p.x+1] == '#'
+		return s.x+1 < len(s.board[s.y]) && s.board[s.y][s.x+1] == '#'
 	default:
-		fmt.Println("err", p.dir)
-		panic(p)
+		fmt.Println("err", s.dir)
+		panic(s)
 	}
 }
 func (p *pos) turn90() {
@@ -90,37 +89,36 @@ func (p *pos) turn90() {
 	}
 }
 func (s *state) step() bool {
-	if s.dejaVu[s.position] {
+	if s.dejaVu[s.pos] {
 		return false
 	}
-	s.dejaVu[s.position] = true
+	s.dejaVu[s.pos] = true
 
-	p := &s.position
-	if s.board[p.y][p.x] != 'X' {
+	if s.board[s.y][s.x] != 'X' {
 		s.distinct++
 	}
-	s.board[p.y][p.x] = 'X'
-	switch p.dir {
+	s.board[s.y][s.x] = 'X'
+	switch s.dir {
 	case '^':
-		p.y--
-		return p.y >= 0
+		s.y--
+		return s.y >= 0
 	case '>':
-		p.x++
-		return p.x < len(s.board[p.y])
+		s.x++
+		return s.x < len(s.board[s.y])
 	case 'v':
-		p.y++
-		return p.y < len(s.board)
+		s.y++
+		return s.y < len(s.board)
 	case '<':
-		p.x--
-		return p.x >= 0
+		s.x--
+		return s.x >= 0
 	default:
-		panic(*p)
+		panic(*s)
 	}
 }
 func (s *state) DeepCopy() (rval *state) {
 	rval = &state{
-		position: s.position,
-		board:    make([][]rune, len(s.board)),
+		pos:   s.pos,
+		board: make([][]rune, len(s.board)),
 		// Doesn't copy dejaVu:
 		dejaVu: map[pos]bool{},
 	}
@@ -152,7 +150,7 @@ func main() {
 
 		for true {
 			if state.something_in_front() {
-				state.position.turn90()
+				state.turn90()
 			} else {
 				if !state.step() {
 					break
@@ -176,7 +174,7 @@ func main() {
 				state.board[oy][ox] = '#'
 				for true {
 					if state.something_in_front() {
-						state.position.turn90()
+						state.turn90()
 					} else {
 						if !state.step() {
 							break
@@ -184,7 +182,7 @@ func main() {
 					}
 				}
 
-				if state.dejaVu[state.position] {
+				if state.dejaVu[state.pos] {
 					c++
 				}
 			}
