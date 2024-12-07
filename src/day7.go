@@ -46,10 +46,10 @@ func main() {
 				}
 				vals = append(vals, i)
 			}
-			if isPossible(tgt, vals, possibilities) {
+			if isPossible2(tgt, vals[0], vals[1:]) {
 				sum += tgt
 				sum3 += tgt
-			} else if isPossible(tgt, vals, possibilities3) {
+			} else if isPossible3(tgt, vals[0], vals[1:]) {
 				sum3 += tgt
 			}
 		}
@@ -65,29 +65,15 @@ func main() {
 	}
 }
 
-func isPossible(tgt int, vals []int, possibilities func([]int) []int) bool {
-	for _, v := range possibilities(vals) {
-		if v == tgt {
-			return true
-		}
-	}
-	return false
-}
-
-func possibilities(vals []int) (rval []int) {
+func isPossible2(tgt int, prev int, vals []int) bool {
 	if len(vals) == 0 {
-		return
+		return tgt == prev
 	}
-	if len(vals) == 1 {
-		return vals
-	}
+	curr := vals[0]
+	rest := vals[1:]
 
-	rest := possibilities(vals[:len(vals)-1])
-	for _, r := range rest {
-		rval = append(rval, r+vals[len(vals)-1])
-		rval = append(rval, r*vals[len(vals)-1])
-	}
-	return
+	return (isPossible2(tgt, prev+curr, rest) ||
+		isPossible2(tgt, prev*curr, rest))
 }
 
 func concat(a, b int) int {
@@ -100,25 +86,14 @@ func concat(a, b int) int {
 	return rv
 }
 
-func possibilities3(vals []int) []int {
-	return possibilities3_internal(0, vals)
-}
-
-func possibilities3_internal(prev int, vals []int) (rval []int) {
+func isPossible3(tgt, prev int, vals []int) bool {
 	if len(vals) == 0 {
-		return []int{prev}
+		return tgt == prev
 	}
-
 	curr := vals[0]
 	rest := vals[1:]
-	for _, r := range possibilities3_internal(prev+curr, rest) {
-		rval = append(rval, r)
-	}
-	for _, r := range possibilities3_internal(prev*curr, rest) {
-		rval = append(rval, r)
-	}
-	for _, r := range possibilities3_internal(concat(prev, curr), rest) {
-		rval = append(rval, r)
-	}
-	return
+
+	return (isPossible3(tgt, prev+curr, rest) ||
+		isPossible3(tgt, prev*curr, rest) ||
+		isPossible3(tgt, concat(prev, curr), rest))
 }
