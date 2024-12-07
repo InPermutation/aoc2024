@@ -90,6 +90,12 @@ func isPossible3(tgt, prev int, vals []int) bool {
 	if len(vals) == 0 {
 		return tgt == prev
 	}
+	if prev > tgt {
+		// stop: +, *, and || all make the number larger
+		// (except if there is a 0 in the input, which there isn't)
+		return false
+	}
+
 	curr := vals[0]
 	rest := vals[1:]
 
