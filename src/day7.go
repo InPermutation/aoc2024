@@ -24,6 +24,7 @@ func main() {
 		scanner := bufio.NewScanner(file)
 
 		sum := 0
+		sum3 := 0
 		for scanner.Scan() {
 			line := scanner.Text()
 			parts := strings.Split(line, ":")
@@ -45,8 +46,11 @@ func main() {
 				}
 				vals = append(vals, i)
 			}
-			if isPossible(tgt, vals) {
+			if isPossible(tgt, vals, possibilities) {
 				sum += tgt
+				sum3 += tgt
+			} else if isPossible(tgt, vals, possibilities3) {
+				sum3 += tgt
 			}
 		}
 		if err := scanner.Err(); err != nil {
@@ -55,10 +59,13 @@ func main() {
 
 		// Part 1
 		fmt.Println("total calibration result: ", sum)
+
+		// Part 2
+		fmt.Println("new total calibration result: ", sum3)
 	}
 }
 
-func isPossible(tgt int, vals []int) bool {
+func isPossible(tgt int, vals []int, possibilities func([]int) []int) bool {
 	for _, v := range possibilities(vals) {
 		if v == tgt {
 			return true
@@ -79,6 +86,39 @@ func possibilities(vals []int) (rval []int) {
 	for _, r := range rest {
 		rval = append(rval, r+vals[len(vals)-1])
 		rval = append(rval, r*vals[len(vals)-1])
+	}
+	return
+}
+
+func concat(a, b int) int {
+	sa := strconv.Itoa(a)
+	sb := strconv.Itoa(b)
+	rv, err := strconv.Atoi(sa + sb)
+	if err != nil {
+		panic(err)
+	}
+	return rv
+}
+
+func possibilities3(vals []int) []int {
+	return possibilities3_internal(0, vals)
+}
+
+func possibilities3_internal(prev int, vals []int) (rval []int) {
+	if len(vals) == 0 {
+		return []int{prev}
+	}
+
+	curr := vals[0]
+	rest := vals[1:]
+	for _, r := range possibilities3_internal(prev+curr, rest) {
+		rval = append(rval, r)
+	}
+	for _, r := range possibilities3_internal(prev*curr, rest) {
+		rval = append(rval, r)
+	}
+	for _, r := range possibilities3_internal(concat(prev, curr), rest) {
+		rval = append(rval, r)
 	}
 	return
 }
