@@ -7,12 +7,6 @@ import (
 	"os"
 )
 
-type freq rune
-
-func (f freq) String() string {
-	return "'" + string(f) + "'"
-}
-
 type pos struct {
 	x int
 	y int
@@ -37,14 +31,14 @@ func main() {
 		scanner := bufio.NewScanner(file)
 
 		y := 0
-		nodes := map[freq][]pos{}
+		nodes := map[rune][]pos{}
 		var height, width int
 		for scanner.Scan() {
 			line := scanner.Text()
 			width = len(line)
 			for x, f := range line {
 				if f != '.' {
-					nodes[freq(f)] = append(nodes[freq(f)], pos{x, y})
+					nodes[f] = append(nodes[f], pos{x, y})
 				}
 			}
 
