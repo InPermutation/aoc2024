@@ -88,11 +88,11 @@ func boundCheck(cand pos, width, height int) bool {
 }
 
 func resonate(a, b pos) (rval []pos) {
-	dx := a.x - b.x
-	dy := a.y - b.y
+	d := pos{a.x - b.x, a.y - b.y}
+	nd := pos{b.x - a.x, b.y - a.y}
 	return []pos{
-		pos{b.x - dx, b.y - dy},
-		pos{a.x + dx, a.y + dy},
+		add(b, nd),
+		add(a, d),
 	}
 }
 
