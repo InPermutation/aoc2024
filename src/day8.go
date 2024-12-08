@@ -88,11 +88,10 @@ func boundCheck(cand pos, width, height int) bool {
 }
 
 func resonate(a, b pos) (rval []pos) {
-	d := pos{a.x - b.x, a.y - b.y}
-	nd := pos{b.x - a.x, b.y - a.y}
+	d := sub(a, b)
 	return []pos{
-		add(b, nd),
 		add(a, d),
+		sub(b, d),
 	}
 }
 
@@ -102,14 +101,19 @@ func add(a, b pos) pos {
 		a.y + b.y,
 	}
 }
+func sub(a, b pos) pos {
+	return pos{
+		a.x - b.x,
+		a.y - b.y,
+	}
+}
 
 func harmonize(a, b pos, width, height int) (rval []pos) {
-	d := pos{a.x - b.x, a.y - b.y}
+	d := sub(a, b)
 	for p := b; boundCheck(p, width, height); p = add(p, d) {
 		rval = append(rval, p)
 	}
-	d = pos{-d.x, -d.y}
-	for p := a; boundCheck(p, width, height); p = add(p, d) {
+	for p := a; boundCheck(p, width, height); p = sub(p, d) {
 		rval = append(rval, p)
 	}
 
