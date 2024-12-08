@@ -12,10 +12,6 @@ type pos struct {
 	y int
 }
 
-func (p pos) String() string {
-	return fmt.Sprintf("(%d, %d)", p.x, p.y)
-}
-
 func main() {
 	for _, fname := range []string{
 		"input/08/sample",
