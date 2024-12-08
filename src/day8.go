@@ -58,6 +58,7 @@ func main() {
 		}
 
 		antinodes := map[pos]bool{}
+		harmonics := map[pos]bool{}
 		for _, ps := range nodes {
 			for i, p := range ps {
 				for _, p2 := range ps[i+1:] {
@@ -66,12 +67,19 @@ func main() {
 							antinodes[cand] = true
 						}
 					}
+					for _, cand := range harmonize(p, p2, width, height) {
+						if boundCheck(cand, width, height) {
+							harmonics[cand] = true
+						}
+					}
 				}
 			}
 		}
 
 		// Part 1
 		fmt.Println("total unique antinode locations: ", len(antinodes))
+		// Part 2
+		fmt.Println("total unique harmonic locations: ", len(harmonics))
 	}
 }
 
@@ -86,4 +94,24 @@ func resonate(a, b pos) (rval []pos) {
 		pos{b.x - dx, b.y - dy},
 		pos{a.x + dx, a.y + dy},
 	}
+}
+
+func add(a, b pos) pos {
+	return pos{
+		a.x + b.x,
+		a.y + b.y,
+	}
+}
+
+func harmonize(a, b pos, width, height int) (rval []pos) {
+	d := pos{a.x - b.x, a.y - b.y}
+	for p := b; boundCheck(p, width, height); p = add(p, d) {
+		rval = append(rval, p)
+	}
+	d = pos{-d.x, -d.y}
+	for p := a; boundCheck(p, width, height); p = add(p, d) {
+		rval = append(rval, p)
+	}
+
+	return
 }
