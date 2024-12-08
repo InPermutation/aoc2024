@@ -62,13 +62,9 @@ func main() {
 			for i, p := range ps {
 				for _, p2 := range ps[i+1:] {
 					for _, cand := range resonate(p, p2) {
-						if cand.x < 0 || cand.y < 0 {
-							continue
+						if boundCheck(cand, width, height) {
+							antinodes[cand] = true
 						}
-						if cand.x >= width || cand.y >= height {
-							continue
-						}
-						antinodes[cand] = true
 					}
 				}
 			}
@@ -78,6 +74,11 @@ func main() {
 		fmt.Println("total unique antinode locations: ", len(antinodes))
 	}
 }
+
+func boundCheck(cand pos, width, height int) bool {
+	return cand.x >= 0 && cand.y >= 0 && cand.x < width && cand.y < height
+}
+
 func resonate(a, b pos) (rval []pos) {
 	dx := a.x - b.x
 	dy := a.y - b.y
