@@ -70,34 +70,39 @@ const (
 )
 
 func (s state) checksum() int {
-	chk := 0
-	id := 0
+	var lfile, rfile, lempty int // pointers into files / empty
+	var subl, subr int           // how much we have consumed of (lfile, rfile)
+	var sube int                 // how much we have consumed of lempty
+	chk, id := 0, 0
 	fsm := File
+	rfile = len(s.files) - 1
 	for i := 0; i < s.width && len(s.files) > 0; i++ {
 		if fsm == File {
-			s.files[0]--
+			subl++
 			chk += (i * id)
-			if s.files[0] == 0 {
+			if subl == s.files[lfile] {
 				id++
 				fsm = Empty
-				s.files = s.files[1:]
-				if s.empty[0] == 0 {
+				lfile++
+				subl = 0
+				if s.empty[lempty] == 0 {
 					fsm = File
-					s.empty = s.empty[1:]
+					lempty++
 				}
 			}
 		} else {
-			last := len(s.files) - 1
-			nid := id + last
-			s.files[last]--
-			if s.files[last] == 0 {
-				s.files = s.files[:last]
+			nid := id + (rfile - lfile)
+			subr++
+			if s.files[rfile] == subr {
+				rfile--
+				subr = 0
 			}
 			chk += (i * nid)
-			s.empty[0]--
-			if s.empty[0] == 0 {
+			sube++
+			if s.empty[lempty] == sube {
 				fsm = File
-				s.empty = s.empty[1:]
+				lempty++
+				sube = 0
 			}
 		}
 	}
