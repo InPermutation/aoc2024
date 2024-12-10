@@ -11,6 +11,7 @@ type pos struct {
 	x                int
 	y                int
 	reachableSummits map[*pos]bool
+	rating           int
 }
 type state struct {
 	fname   string
@@ -77,9 +78,10 @@ func main() {
 
 		for _, summit := range s.heights[9] {
 			summit.reachableSummits = map[*pos]bool{summit: true}
+			summit.rating = 1
 		}
 
-		sum := 0
+		sum, rsum := 0, 0
 		for i := 8; i >= 0; i-- {
 			for _, p := range s.heights[i] {
 				for _, t := range s.heights[i+1] {
@@ -87,15 +89,19 @@ func main() {
 						for s := range t.reachableSummits {
 							p.reachableSummits[s] = true
 						}
+						p.rating += t.rating
 					}
 				}
 				if i == 0 {
 					sum += len(p.reachableSummits)
+					rsum += p.rating
 				}
 			}
 		}
 
 		// Part 1
 		fmt.Println("sum of scores: ", sum)
+		// Part 2
+		fmt.Println("sum of ratings: ", rsum)
 	}
 }
