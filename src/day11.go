@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"container/list"
 	"fmt"
 	"log"
 	"os"
@@ -10,9 +9,11 @@ import (
 	"strings"
 )
 
+var dp map[int]map[int]int = map[int]map[int]int{}
+
 type state struct {
 	fname  string
-	stones *list.List
+	stones []int
 }
 
 func readFile(fname string) state {
@@ -24,7 +25,6 @@ func readFile(fname string) state {
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
-	s.stones = &list.List{}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -34,7 +34,7 @@ func readFile(fname string) state {
 			if err != nil {
 				log.Fatal(err)
 			}
-			s.stones.PushBack(i)
+			s.stones = append(s.stones, i)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -58,35 +58,51 @@ func states() (rval []state) {
 	return
 }
 
+func onelen(v, depth int) int {
+	if depth == 0 {
+		return 1
+	}
+	if v == 0 {
+		return onelen(1, depth-1)
+	}
+
+	if atd, found := dp[v]; found {
+		if rv, found := atd[depth]; found {
+			return rv
+		}
+	} else {
+		dp[v] = map[int]int{}
+	}
+
+	str := strconv.Itoa(v)
+	sum := 0
+	if len(str)%2 == 0 {
+		il, err := strconv.Atoi(str[:len(str)/2])
+		if err != nil {
+			log.Fatal(err)
+		}
+		ir, err := strconv.Atoi(str[len(str)/2:])
+		if err != nil {
+			log.Fatal(err)
+		}
+		sum = onelen(il, depth-1) + onelen(ir, depth-1)
+	} else {
+		sum = onelen(v*2024, depth-1)
+	}
+
+	dp[v][depth] = sum
+	return sum
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
-
-		for i := 0; i < 25; i++ {
-			for e := s.stones.Front(); e != nil; e = e.Next() {
-				if e.Value == 0 {
-					e.Value = 1
-				} else {
-					str := strconv.Itoa(e.Value.(int))
-					if len(str)%2 == 0 {
-						il, err := strconv.Atoi(str[:len(str)/2])
-						if err != nil {
-							log.Fatal(err)
-						}
-						ir, err := strconv.Atoi(str[len(str)/2:])
-						if err != nil {
-							log.Fatal(err)
-						}
-						s.stones.InsertBefore(il, e)
-						e.Value = ir
-					} else {
-						e.Value = e.Value.(int) * 2024
-					}
-				}
+		for _, depth := range []int{25, 75} {
+			sum := 0
+			for _, v := range s.stones {
+				sum += onelen(v, depth)
 			}
+			fmt.Println("len(stones) @ ", depth, " : ", sum)
 		}
-
-		// Part 1
-		fmt.Println("len(stones): ", s.stones.Len())
 	}
 }
