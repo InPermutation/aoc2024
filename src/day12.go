@@ -77,11 +77,13 @@ func neighbors(c coord) []coord {
 	}
 }
 
-func (s *state) floodFill(c coord) int {
+func (s *state) floodFill(c coord) map[coord]*plot {
+	region := map[coord]*plot{}
 	fringe := map[coord]bool{c: true}
 	for len(fringe) > 0 {
 		for c := range fringe {
 			plot := s.plots[c]
+			region[c] = plot
 			if plot.region == 0 {
 				plot.region = s.nextRegion
 				for _, n := range neighbors(c) {
@@ -93,25 +95,26 @@ func (s *state) floodFill(c coord) int {
 			delete(fringe, c)
 		}
 	}
+	s.nextRegion++
+	return region
+}
+
+func rackRate(plots map[coord]*plot) int {
 	perimeter, area := 0, 0
-	fringe = map[coord]bool{c: true}
 	seen := map[coord]bool{}
-	for len(fringe) > 0 {
+	for len(plots) > 0 {
 		found := false
-		for c := range fringe {
+		for c := range plots {
 			if !seen[c] {
 				for _, n := range neighbors(c) {
-					if p1, ok := s.plots[n]; ok && p1.region == s.nextRegion {
-						fringe[n] = true
-					} else {
+					if _, ok := plots[n]; !ok {
 						// no neigbor on that side - add perimeter
 						perimeter++
 					}
 				}
 				area++
-				found = true
 				seen[c] = true
-				break
+				found = true
 			}
 		}
 		if !found {
@@ -119,7 +122,6 @@ func (s *state) floodFill(c coord) int {
 		}
 	}
 
-	s.nextRegion++
 	return perimeter * area
 }
 
@@ -129,7 +131,8 @@ func main() {
 		part1 := 0
 		for coord, plot := range s.plots {
 			if plot.region == 0 {
-				part1 += s.floodFill(coord)
+				region := s.floodFill(coord)
+				part1 += rackRate(region)
 			}
 		}
 
