@@ -72,10 +72,10 @@ func states() (rval []state) {
 
 func neighbors(c coord) []coord {
 	return []coord{
-		coord{c.x - 1, c.y},
-		coord{c.x + 1, c.y},
-		coord{c.x, c.y - 1},
-		coord{c.x, c.y + 1},
+		coord{c.x - 1, c.y}, // LEFT
+		coord{c.x + 1, c.y}, // RIGHT
+		coord{c.x, c.y - 1}, // UP
+		coord{c.x, c.y + 1}, // DOWN
 	}
 }
 
@@ -119,16 +119,58 @@ func rackRate(plots map[coord]*plot) int {
 
 	return perimeter * area
 }
+
 func discount(plots map[coord]*plot) int {
 	sides, area := 0, 0
 	seen := map[coord]bool{}
+	// only count the topmost/leftmost segments of each side
 	for c := range plots {
 		if !seen[c] {
-			for _, n := range neighbors(c) {
-				if n.x == -1 {
-					// TODO
+			ns := neighbors(c)
+			l, r, u, d := plots[ns[0]] != nil, plots[ns[1]] != nil, plots[ns[2]] != nil, plots[ns[3]] != nil
+			uns := neighbors(ns[2])
+			lns := neighbors(ns[0])
+			if !l {
+				// am i the top?
+				if !u {
+					// convex corner
+					sides++
+				} else if plots[uns[0]] != nil {
+					//concave corner
+					sides++
 				}
 			}
+			if !r {
+				// am i the top?
+				if !u {
+					// convex corner
+					sides++
+				} else if plots[uns[1]] != nil {
+					// concave corner
+					sides++
+				}
+			}
+			if !u {
+				// am i the left?
+				if !l {
+					// convex corner
+					sides++
+				} else if plots[lns[2]] != nil {
+					// concave corner
+					sides++
+				}
+			}
+			if !d {
+				// am i the left?
+				if !l {
+					// convex corner
+					sides++
+				} else if plots[lns[3]] != nil {
+					//concave corner
+					sides++
+				}
+			}
+
 			area++
 			seen[c] = true
 		}
