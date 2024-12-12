@@ -102,23 +102,16 @@ func (s *state) floodFill(c coord) map[coord]*plot {
 func rackRate(plots map[coord]*plot) int {
 	perimeter, area := 0, 0
 	seen := map[coord]bool{}
-	for len(plots) > 0 {
-		found := false
-		for c := range plots {
-			if !seen[c] {
-				for _, n := range neighbors(c) {
-					if _, ok := plots[n]; !ok {
-						// no neigbor on that side - add perimeter
-						perimeter++
-					}
+	for c := range plots {
+		if !seen[c] {
+			for _, n := range neighbors(c) {
+				if _, ok := plots[n]; !ok {
+					// no neigbor on that side - add perimeter
+					perimeter++
 				}
-				area++
-				seen[c] = true
-				found = true
 			}
-		}
-		if !found {
-			break
+			area++
+			seen[c] = true
 		}
 	}
 
