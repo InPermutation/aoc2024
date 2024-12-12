@@ -58,6 +58,8 @@ func states() (rval []state) {
 		"input/12/small",
 		"input/12/sample",
 		"input/12/input",
+		"input/12/eshape",
+		"input/12/mobius",
 	} {
 		s := readFile(fname)
 		if s.plots == nil {
@@ -117,18 +119,37 @@ func rackRate(plots map[coord]*plot) int {
 
 	return perimeter * area
 }
+func discount(plots map[coord]*plot) int {
+	sides, area := 0, 0
+	seen := map[coord]bool{}
+	for c := range plots {
+		if !seen[c] {
+			for _, n := range neighbors(c) {
+				if n.x == -1 {
+					// TODO
+				}
+			}
+			area++
+			seen[c] = true
+		}
+	}
+
+	return sides * area
+}
 
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
-		part1 := 0
+		part1, part2 := 0, 0
 		for coord, plot := range s.plots {
 			if plot.region == 0 {
 				region := s.floodFill(coord)
 				part1 += rackRate(region)
+				part2 += discount(region)
 			}
 		}
 
 		fmt.Println("fence price: ", part1)
+		fmt.Println("discount price: ", part2)
 	}
 }
