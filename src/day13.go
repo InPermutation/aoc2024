@@ -87,49 +87,48 @@ func states() (rval []state) {
 	return
 }
 
-func sub(a, b coord) coord {
-	return coord{a.x - b.x, a.y - b.y}
-}
-
 func plus(a, b coord) coord {
 	return coord{a.x + b.x, a.y + b.y}
 }
 
-func times(a coord, n int) coord {
-	return coord{a.x * n, a.y * n}
-}
-
 func minTokens(m machine) (rval int) {
-	for a := 0; a < 100; a++ {
-		cost := 3 * a
-		if rval != 0 && cost >= rval {
-			break
-		}
-		for b := 0; b < 100; b++ {
-			cost := 3*a + b
-			if rval != 0 && cost >= rval {
-				break
-			}
-			if plus(times(m.A, a), times(m.B, b)) == m.Prize {
-				if rval == 0 || rval > cost {
-					rval = cost
-				}
-			}
-		}
+	Ax, Ay := m.A.x, m.A.y
+	Bx, By := m.B.x, m.B.y
+	Xa, Ya := m.Prize.x, m.Prize.y
+
+	x := Bx * (Ax*Ya - Ay*Xa) / (By*Ax - Ay*Bx)
+
+	Bs := x / Bx
+	RBs := x % Bx
+	if RBs != 0 {
+		return 0
 	}
-	return
+	As := (Xa - x) / Ax
+	RAs := (Xa - x) % Ax
+	if RAs != 0 {
+		return 0
+	}
+
+	return 3*As + Bs
 }
 
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		// Part 1
 		sum := 0
 		for _, machine := range s.machines {
 			sum += minTokens(machine)
+
 		}
-		fmt.Println()
 		fmt.Println("min tokens: ", sum)
+
+		sum = 0
+		for _, machine := range s.machines {
+			machine.Prize.x += 10000000000000
+			machine.Prize.y += 10000000000000
+			sum += minTokens(machine)
+		}
+		fmt.Println("min tokens 2: ", sum)
 	}
 }
