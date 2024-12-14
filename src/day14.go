@@ -61,6 +61,12 @@ func readFile(fname string) state {
 		log.Fatal(err)
 	}
 
+	if fname == "input/14/sample" {
+		s.size = coord{11, 7}
+	} else {
+		s.size = coord{101, 103}
+	}
+
 	return s
 }
 
@@ -86,7 +92,34 @@ func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		fmt.Println(s)
+		// Part 1
+		var q [4]int
+		for _, r := range s.robots {
+			x := (r.p.x + r.v.x*100) % s.size.x
+			y := (r.p.y + r.v.y*100) % s.size.y
 
+			if x < 0 {
+				x += s.size.x
+			}
+			if y < 0 {
+				y += s.size.y
+			}
+
+			if x < s.size.x/2 && y < s.size.y/2 {
+				q[0]++
+			} else if x < s.size.x/2 && y > s.size.y/2 {
+				q[1]++
+			} else if x > s.size.x/2 && y > s.size.y/2 {
+				q[2]++
+			} else if x > s.size.x/2 && y < s.size.y/2 {
+				q[3]++
+			}
+		}
+		sum := 1
+		for _, c := range q {
+			sum *= c
+		}
+		fmt.Println(q)
+		fmt.Println("safety factor: ", sum)
 	}
 }
