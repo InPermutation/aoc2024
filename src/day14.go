@@ -121,5 +121,40 @@ func main() {
 		}
 		fmt.Println(q)
 		fmt.Println("safety factor: ", sum)
+
+		// Part 2
+		seen := map[string]int{}
+		sb := strings.Builder{}
+		for t := 1; s.size.x > 100; t++ {
+			gr := map[coord]bool{}
+			for i, r := range s.robots {
+				s.robots[i].p.x = (((r.p.x + r.v.x) % s.size.x) + s.size.x) % s.size.x
+				s.robots[i].p.y = (((r.p.y + r.v.y) % s.size.y) + s.size.y) % s.size.y
+				gr[s.robots[i].p] = true
+			}
+			sb.Reset()
+			for y := 0; y < s.size.y; y++ {
+				for x := 0; x < s.size.x; x++ {
+					if gr[coord{x, y}] {
+						sb.WriteRune('*')
+					} else {
+						sb.WriteRune(' ')
+					}
+				}
+				sb.WriteRune('\n')
+			}
+			sbs := sb.String()
+			if seen[sbs] != 0 {
+				fmt.Println("Repeats after ", t, "s")
+				break
+			} else {
+				seen[sbs] = t
+				if strings.Contains(sbs, " ********* ") && strings.Contains(sbs, " ************* ") {
+					fmt.Println("Time ", t, "s")
+					fmt.Println(sbs)
+					fmt.Println()
+				}
+			}
+		}
 	}
 }
