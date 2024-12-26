@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -17,6 +18,18 @@ type state struct {
 	Ip      int
 	Program []int
 	Output  []int
+}
+
+func (s *state) DeepCopy() *state {
+	return &state{
+		s.fname,
+		s.A,
+		s.B,
+		s.C,
+		s.Ip,
+		slices.Clone(s.Program),
+		slices.Clone(s.Output),
+	}
 }
 
 func readFile(fname string) state {
@@ -82,61 +95,67 @@ func dv(n, b int) int {
 	return n / (1 << b)
 }
 
+func (s *state) step() bool {
+	op := s.Program[s.Ip]
+	arg := s.Program[s.Ip+1]
+	combo := arg
+	if arg == 4 {
+		combo = s.A
+	} else if arg == 5 {
+		combo = s.B
+	} else if arg == 6 {
+		combo = s.C
+	}
+
+	switch op {
+	case 0: // adv
+		s.A = dv(s.A, combo)
+		s.Ip += 2
+	case 1: // bxl
+		s.B = s.B ^ arg
+		s.Ip += 2
+	case 2: // bst
+		s.B = combo % 8
+		s.Ip += 2
+	case 3: // jnz
+		if s.A == 0 {
+			s.Ip += 2
+		} else {
+			s.Ip = arg
+		}
+	case 4: // bxc
+		s.B = (s.B ^ s.C)
+		s.Ip += 2
+	case 5: // out
+		s.Output = append(s.Output, combo%8)
+		s.Ip += 2
+	case 6: // bdv
+		s.B = dv(s.A, combo)
+		s.Ip += 2
+	case 7: // cdv
+		s.C = dv(s.A, combo)
+		s.Ip += 2
+	default:
+		log.Fatal("unknown opcode ", s.Program[s.Ip])
+	}
+
+	return s.Ip < len(s.Program)
+}
+func (s *state) Part1() {
+	for s.step() {
+	}
+	for i, v := range s.Output {
+		if i != 0 {
+			fmt.Print(",")
+		}
+		fmt.Print(v)
+	}
+	fmt.Println()
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
-
-		for s.Ip < len(s.Program) {
-			op := s.Program[s.Ip]
-			arg := s.Program[s.Ip+1]
-			combo := arg
-			if arg == 4 {
-				combo = s.A
-			} else if arg == 5 {
-				combo = s.B
-			} else if arg == 6 {
-				combo = s.C
-			}
-
-			switch op {
-			case 0: // adv
-				s.A = dv(s.A, combo)
-				s.Ip += 2
-			case 1: // bxl
-				s.B = s.B ^ arg
-				s.Ip += 2
-			case 2: // bst
-				s.B = combo % 8
-				s.Ip += 2
-			case 3: // jnz
-				if s.A == 0 {
-					s.Ip += 2
-				} else {
-					s.Ip = arg
-				}
-			case 4: // bxc
-				s.B = (s.B ^ s.C)
-				s.Ip += 2
-			case 5: // out
-				s.Output = append(s.Output, combo%8)
-				s.Ip += 2
-			case 6: // bdv
-				s.B = dv(s.A, combo)
-				s.Ip += 2
-			case 7: // cdv
-				s.C = dv(s.A, combo)
-				s.Ip += 2
-			default:
-				log.Fatal("unknown opcode ", s.Program[s.Ip])
-			}
-		}
-
-		for i, v := range s.Output {
-			if i != 0 {
-				fmt.Print(",")
-			}
-			fmt.Print(v)
-		}
-		fmt.Println()
+		s.DeepCopy().Part1()
 	}
 }
