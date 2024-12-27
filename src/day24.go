@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -93,7 +94,44 @@ func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		fmt.Println(s)
+		for len(s.gates) > 0 {
+			found := false
+			for o, g := range s.gates {
+				if a, ok := s.wires[g.a]; ok {
+					if b, ok := s.wires[g.b]; ok {
+						var res bool
+						switch g.op {
+						default:
+							log.Fatal("unknown op", g)
+						case "AND":
+							res = a && b
+						case "OR":
+							res = a || b
+						case "XOR":
+							res = a != b
+						}
+						s.wires[o] = res
+						found = true
+						delete(s.gates, o)
+						break
+					}
+				}
+			}
+			if !found {
+				log.Fatal("no progress", s)
+			}
+		}
 
+		res := 0
+		for k, v := range s.wires {
+			if v && k[0] == 'z' {
+				i, err := strconv.Atoi(k[1:])
+				if err != nil {
+					panic(err)
+				}
+				res |= 1 << i
+			}
+		}
+		fmt.Println(res)
 	}
 }
