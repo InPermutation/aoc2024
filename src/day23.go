@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -67,11 +68,51 @@ func sToConn(s string) int {
 	return int(s[0]-'a')*26 + int(s[1]-'a')
 }
 
+func connToS(i int) string {
+	return string(i/26+'a') + string(i%26+'a')
+}
+
+func (s *state) largest(i int) []int {
+	set := []int{i}
+	for j := i + 1; j < 26*26; j++ {
+		if s.Conn[i][j] {
+			set = append(set, j)
+		}
+	}
+
+	return s.l2([]int{}, set)
+}
+
+func (s *state) l2(in, rem []int) []int {
+	if len(rem) == 0 {
+		if len(in) < 2 {
+			return in
+		}
+		for i := range in {
+			for j := i + 1; j < len(in); j++ {
+				if !s.Conn[in[i]][in[j]] {
+					return []int{}
+				}
+			}
+		}
+		return in
+	}
+
+	a := s.l2(slices.Clone(append(in, rem[0])), rem[1:])
+	b := s.l2(slices.Clone(in), rem[1:])
+	if len(a) > len(b) {
+		return a
+	}
+	return b
+}
+
 func main() {
 	t := int('t' - 'a')
 	for _, s := range states() {
 		fmt.Println(s.fname)
 		c := 0
+		largest := []int{}
+
 		for i := 0; i < 26*26; i++ {
 			for j := i + 1; j < 26*26; j++ {
 				if !s.Conn[i][j] {
@@ -86,7 +127,20 @@ func main() {
 					}
 				}
 			}
+
+			bgroup := s.largest(i)
+			if len(bgroup) > len(largest) {
+				largest = bgroup
+			}
 		}
 		fmt.Println(c)
+		for i, v := range largest {
+			if i != 0 {
+				fmt.Print(",")
+			}
+			fmt.Print(connToS(v))
+		}
+		fmt.Println()
+
 	}
 }
