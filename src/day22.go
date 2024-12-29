@@ -40,6 +40,7 @@ func readFile(fname string) state {
 func states() (rval []state) {
 	for _, fname := range []string{
 		"input/22/sample",
+		"input/22/sample2",
 		"input/22/input",
 	} {
 		s := readFile(fname)
@@ -101,15 +102,59 @@ func main() {
 		fmt.Println(s.fname)
 
 		sum := 0
+		total := map[[4]int]int{}
 		for _, v := range s.secrets {
 			//fmt.Print(v, ": ")
+
+			curr := [4]int{-99, -99, -99, -99}
+			d := map[[4]int]int{}
 			for i := 0; i < 2000; i++ {
-				v = next(v)
+				curr[0] = curr[1]
+				curr[1] = curr[2]
+				curr[2] = curr[3]
+				n := next(v)
+				curr[3] = n%10 - v%10
+				v = n
+				if _, ok := d[curr]; !ok {
+					price := v % 10
+					d[curr] = price
+				}
 			}
 			sum += v
 			//fmt.Println(v)
-		}
 
+			for k, v := range d {
+				total[k] += v
+			}
+		}
 		fmt.Println("sum of 2000th:", sum)
+
+		most := 0
+		for try := [4]int{-9, -9, -9, -9}; try != [4]int{10, -9, -9, -9}; try = inc(try) {
+			if a := total[try]; a > most {
+				most = a
+			}
+		}
+		fmt.Println("most bananas:", most)
 	}
+}
+
+func inc(try [4]int) [4]int {
+	if try[3] == 9 {
+		try[3] = -9
+		if try[2] == 9 {
+			try[2] = -9
+			if try[1] == 9 {
+				try[1] = -9
+				try[0]++
+			} else {
+				try[1]++
+			}
+		} else {
+			try[2]++
+		}
+	} else {
+		try[3]++
+	}
+	return try
 }
