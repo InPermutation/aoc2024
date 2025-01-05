@@ -73,9 +73,69 @@ func states() (rval []state) {
 	return
 }
 
+func (s *state) neighbors(p pos, corrupted map[pos]bool) []pos {
+	rv := []pos{}
+	ns := []pos{{p.x - 1, p.y}, {p.x + 1, p.y}, {p.x, p.y - 1}, {p.x, p.y + 1}}
+	for _, n := range ns {
+		if corrupted[n] {
+			continue
+		}
+		if n.x >= 0 && n.x <= s.exit.x {
+			if n.y >= 0 && n.y <= s.exit.y {
+				rv = append(rv, n)
+			}
+		}
+	}
+	return rv
+}
+
+func (s *state) firstBytes() int {
+	switch s.fname {
+	case "input/18/sample":
+		return 12
+	case "input/18/input":
+		return 1024
+	default:
+		panic(s.fname)
+	}
+}
+
+func (s *state) firstCorrupted() map[pos]bool {
+	corrupted := map[pos]bool{}
+	for _, c := range s.corrupted[:s.firstBytes()] {
+		corrupted[c] = true
+	}
+
+	return corrupted
+}
+
+func (s *state) Part1() int {
+	origin := pos{0, 0}
+	m := map[pos]int{
+		origin: 0,
+	}
+
+	corrupted := s.firstCorrupted()
+
+	fringe := []pos{origin}
+	for len(fringe) > 0 {
+		p := fringe[0]
+		stepCost := m[p] + 1
+		fringe = fringe[1:]
+		for _, n := range s.neighbors(p, corrupted) {
+			if currCost, ok := m[n]; !ok || currCost > stepCost {
+				fringe = append(fringe, n)
+				m[n] = stepCost
+			}
+		}
+	}
+
+	return m[s.exit]
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
-		fmt.Println(s)
+		fmt.Println("part 1", s.Part1())
 	}
 }
