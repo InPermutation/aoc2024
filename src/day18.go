@@ -133,9 +133,43 @@ func (s *state) Part1() int {
 	return m[s.exit]
 }
 
+func (s *state) Part2() pos {
+	origin := pos{0, 0}
+
+	// skip the firstCorrupted; we know from Part1 they are possible
+	corrupted := s.firstCorrupted()
+	// iteratively widen the solution
+	for _, c := range s.corrupted[s.firstBytes():] {
+		corrupted[c] = true
+		// don't actually care about cost
+		m := map[pos]bool{
+			origin: true,
+		}
+		fringe := []pos{origin}
+
+		for len(fringe) > 0 {
+			p := fringe[0]
+			fringe = fringe[1:]
+			for _, n := range s.neighbors(p, corrupted) {
+				if !m[n] {
+					fringe = append(fringe, n)
+					m[n] = true
+				}
+			}
+		}
+		if !m[s.exit] {
+			return c
+		}
+	}
+
+	panic("did not fail")
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 		fmt.Println("part 1", s.Part1())
+		fpt := s.Part2()
+		fmt.Printf("part 2 (%v,%v)\n", fpt.x, fpt.y)
 	}
 }
