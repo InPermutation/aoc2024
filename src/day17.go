@@ -153,9 +153,66 @@ func (s *state) Part1() {
 	fmt.Println()
 }
 
+func (s *state) Part2(lm int) int {
+	for a := 0; a <= 7; a++ {
+		at := lm<<3 | a
+		s1 := s.DeepCopy()
+		s1.A = at
+		for s1.step() {
+		}
+
+		// only need to check first output
+		if s.Program[len(s.Program)-len(s1.Output)] != s1.Output[0] {
+			continue
+		}
+		if len(s.Program) == len(s1.Output) {
+			// win!
+			return at
+		}
+		possible := s.Part2(at)
+		if possible >= 0 {
+			return possible
+		}
+	}
+	return -1
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 		s.DeepCopy().Part1()
+		if s.fname == "input/17/input" {
+			fmt.Println("quine:", s.Part2(0))
+		}
 	}
 }
+
+// :r input/17/input
+// Register A: 65804993
+// Register B: 0
+// Register C: 0
+// Program: 2,4,1,1,7,5,1,4,0,3,4,5,5,5,3,0
+// --
+// Decompiled:
+// location
+// |  opcode
+// |  | operand
+// |  | | disassembly
+// v  v v v         ; comment
+// 0  2 4 bst a     ; b = a
+// 2  1 1 bxl 1     ; b = b ^ 1 -- toggle low bit of b
+// 4  7 5 cdv (2^b) ; c = a / (2^b)
+// 6  1 4 bxl 4     ; b = b ^ 4 -- toggle the 3rd bit of b
+// 8  0 3 adv (2^3) ; a = a / 8 -- a>>=3
+// 10 4 5 bxc       ; b = b ^ c
+// 12 5 5 out b     ; print b
+// 14 3 0 jnz 0     ; loop if a is nonzero
+
+// analysis:
+// - b and c are temporaries; only the value of a matters
+// - at 8, a will shrink by 3 bits
+// - at 14, loop back
+// - NO INFINITE LOOPS
+// - ALWAYS MAKES PROGRESS
+// - therefore we can iterate from the end of the program and
+//   see what the first, second, Nth triad is.
