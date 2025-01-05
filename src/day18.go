@@ -137,10 +137,14 @@ func (s *state) Part2() pos {
 	origin := pos{0, 0}
 
 	// skip the firstCorrupted; we know from Part1 they are possible
-	corrupted := s.firstCorrupted()
-	// iteratively widen the solution
-	for _, c := range s.corrupted[s.firstBytes():] {
-		corrupted[c] = true
+	lo, hi := s.firstBytes(), len(s.corrupted)
+	// binary search
+	for lo != hi {
+		corrupted := map[pos]bool{}
+		pivot := (lo + hi) / 2
+		for _, c := range s.corrupted[:pivot] {
+			corrupted[c] = true
+		}
 		// don't actually care about cost
 		m := map[pos]bool{
 			origin: true,
@@ -158,11 +162,13 @@ func (s *state) Part2() pos {
 			}
 		}
 		if !m[s.exit] {
-			return c
+			hi = pivot
+		} else {
+			lo = pivot + 1
 		}
 	}
 
-	panic("did not fail")
+	return s.corrupted[lo-1]
 }
 
 func main() {
