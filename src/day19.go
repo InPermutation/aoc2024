@@ -12,10 +12,14 @@ type state struct {
 	fname    string
 	towels   []string
 	patterns []string
+	memo     map[string][]int
 }
 
 func readFile(fname string) state {
-	s := state{fname: fname}
+	s := state{
+		fname: fname,
+		memo:  map[string][]int{"": []int{1}},
+	}
 	file, err := os.Open(fname)
 	if err != nil {
 		log.Print(err)
@@ -61,34 +65,47 @@ func states() (rval []state) {
 	return
 }
 
-func (s *state) Possible(design string) bool {
-	if design == "" {
-		return true
+func (s *state) Possible(design string) (rv []int) {
+	if v, ok := s.memo[design]; ok {
+		return v
 	}
 
 	for _, prefix := range s.towels {
 		if strings.HasPrefix(design, prefix) {
 			suffix := design[len(prefix):]
-			if s.Possible(suffix) {
-				return true
+			sum := 0
+			for _, p := range s.Possible(suffix) {
+				sum += p
+			}
+			if sum != 0 {
+				rv = append(rv, sum)
 			}
 		}
 	}
 
-	return false
+	s.memo[design] = rv
+
+	return
 }
 
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		c := 0
+		c, ways := 0, 0
 		for _, design := range s.patterns {
-			if s.Possible(design) {
+			p := s.Possible(design)
+			sum := 0
+			for _, v := range p {
+				sum += v
+			}
+			ways += sum
+			if sum > 0 {
 				c++
 			}
 		}
 
 		fmt.Println(c)
+		fmt.Println(ways)
 	}
 }
