@@ -61,8 +61,34 @@ func states() (rval []state) {
 	return
 }
 
+func (s *state) Possible(design string) bool {
+	if design == "" {
+		return true
+	}
+
+	for _, prefix := range s.towels {
+		if strings.HasPrefix(design, prefix) {
+			suffix := design[len(prefix):]
+			if s.Possible(suffix) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
+
+		c := 0
+		for _, design := range s.patterns {
+			if s.Possible(design) {
+				c++
+			}
+		}
+
+		fmt.Println(c)
 	}
 }
