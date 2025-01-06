@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type state struct {
@@ -61,146 +62,121 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(v, "(", len(v), ")")
 			d := driveNumeric(v)
-			fmt.Println(d, "(", len(d), ")")
 			d = driveDirectional(d)
-			fmt.Println(d, "(", len(d), ")")
 			d = driveDirectional(d)
-			fmt.Println(d, "(", len(d), ")")
 			sum += len(d) * numericPart
-			fmt.Println()
 		}
 		fmt.Println()
 		fmt.Println("sum complexity", sum)
 	}
 }
 
-var dd map[string]string = map[string]string{
-	"A^": "<",
-	"A>": "v",
-	"Av": "v<",
-	"A<": "v<<",
+var directional map[rune]coord = map[rune]coord{
+	//  ^A
+	// <v>
+	'^': coord{1, 0},
+	'A': coord{2, 0},
 
-	"<A": ">>^",
-	"<^": ">^",
-	"<v": ">",
-	"<>": ">>",
-
-	"v^": "^",
-	"v>": ">",
-	"v<": "<",
-	"vA": ">^",
-
-	"^A": ">",
-	"^<": "v<",
-	"^v": "v",
-	"^>": "v>",
-
-	">A": "^",
-	">^": "^<",
-	">v": "<",
-	"><": "<<",
-
-	"AA": "",
-	"^^": "",
-	"vv": "",
-	"<<": "",
-	">>": "",
+	'<': coord{0, 1},
+	'v': coord{1, 1},
+	'>': coord{2, 1},
 }
 
 func driveDirectional(s string) string {
-	//  ^A
-	// <v>
-	pos := "A"
-	rv := ""
-	for _, v := range s {
-		if i, ok := dd[pos+string(v)]; !ok {
-			log.Fatal("dd fail ", s, ":", pos, string(v))
-		} else {
-			rv += i + "A"
-			pos = string(v)
-		}
-	}
-
-	return rv
+	return drivePad(directional, s)
 }
 
-var nd map[string]string = map[string]string{
-	"A0": "<",
-	"A1": "^<<",
-	"A2": "^<",
-	"A3": "^",
-	"A4": "^^<<",
-	"A5": "^^<",
-	"A6": "^^",
-	"A7": "^^^<<",
-	"A8": "^^^<",
-	"A9": "^^^",
-
-	"0A": ">",
-	"01": "^<",
-	"02": "^",
-	"03": "^>",
-	"04": "^^<",
-	"05": "^^",
-	"06": "^^>",
-	"07": "^^^<",
-	"08": "^^^",
-	"09": "^^^>",
-
-	"17": "^^",
-
-	"2A": "v>",
-	"29": ">^^",
-
-	"3A": "v",
-	"37": "^^<<",
-	"38": "^^<",
-	"39": "^^",
-
-	"45": ">",
-	"46": ">>",
-
-	"56": ">",
-
-	"6A": "vv",
-	"63": "v",
-
-	"74": "v",
-	"75": "v>",
-	"76": "v>>",
-	"78": ">",
-	"79": ">>",
-
-	"80": "vvv",
-	"81": "vv<",
-	"82": "vv",
-	"83": "vv>",
-	"87": "<",
-	"89": ">",
-
-	"9A": "vvv",
-	"96": "v",
-	"97": "<<",
-	"98": "<",
+type coord struct {
+	x int
+	y int
 }
 
-func driveNumeric(s string) string {
+var numpad map[rune]coord = map[rune]coord{
 	// 789
 	// 456
 	// 123
 	//  0A
-	pos := "A"
-	rv := ""
+	'7': coord{0, 0},
+	'8': coord{1, 0},
+	'9': coord{2, 0},
+	'4': coord{0, 1},
+	'5': coord{1, 1},
+	'6': coord{2, 1},
+
+	'1': coord{0, 2},
+	'2': coord{1, 2},
+	'3': coord{2, 2},
+
+	'0': coord{1, 3},
+	'A': coord{2, 3},
+}
+
+func driveNumeric(s string) string {
+	return drivePad(numpad, s)
+}
+
+func drivePad(pad map[rune]coord, s string) string {
+	_, isDirectional := pad['<']
+	pos := pad['A']
+	sb := strings.Builder{}
+
 	for _, c := range s {
-		if s, ok := nd[pos+string(c)]; ok {
-			rv += s + "A"
-			pos = string(c)
-		} else {
-			log.Fatal(pos, string(c), ":", s)
+		next, ok := pad[c]
+		if !ok {
+			log.Fatal("unknown digit ", string(c), " in ", s)
 		}
+		diff := coord{next.x - pos.x, next.y - pos.y}
+		if isDirectional {
+			// don't hover X
+			if pos.y == 0 && next.x == 0 {
+				for diff.y > 0 {
+					sb.WriteRune('v')
+					diff.y--
+				}
+			}
+			if pos.x == 1 && pos.y == 1 {
+				for diff.x > 0 {
+					sb.WriteRune('>')
+					diff.x--
+				}
+			}
+
+		} else {
+			// don't hover X
+			if pos.x == 0 && next.y == 3 {
+				for diff.x > 0 {
+					sb.WriteRune('>')
+					diff.x--
+				}
+			}
+			if pos.y == 3 && next.x == 0 {
+				for diff.y < 0 {
+					sb.WriteRune('^')
+					diff.y++
+				}
+			}
+		}
+
+		for diff.x < 0 {
+			sb.WriteRune('<')
+			diff.x++
+		}
+		for diff.y > 0 {
+			sb.WriteRune('v')
+			diff.y--
+		}
+		for diff.x > 0 {
+			sb.WriteRune('>')
+			diff.x--
+		}
+		for diff.y < 0 {
+			sb.WriteRune('^')
+			diff.y++
+		}
+		sb.WriteRune('A')
+		pos = next
 	}
 
-	return rv
+	return sb.String()
 }
