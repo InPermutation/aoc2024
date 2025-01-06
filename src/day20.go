@@ -132,6 +132,22 @@ func main() {
 
 		// Part 0
 		base := s.Cost()
-		fmt.Println("base score: ", base)
+
+		cheats := map[int]int{}
+		for wall := range s.walls {
+			s.walls[wall] = false
+
+			wo := s.Cost()
+			cheats[base-wo]++
+
+			s.walls[wall] = true
+		}
+
+		c := 0
+		for i := 100; i <= base; i++ {
+			c += cheats[i]
+		}
+
+		fmt.Println("There are", c, "cheats that save at least 100 picoseconds.")
 	}
 }
