@@ -145,9 +145,6 @@ func (s *state) Cheats(maxCost int) map[int]int {
 	for x := 0; x < s.size.x; x++ {
 		for y := 0; y < s.size.y; y++ {
 			start := coord{x, y}
-			if s.walls[start] {
-				continue
-			}
 			fmStart, ok := fromStart[start]
 			if !ok {
 				continue
@@ -159,9 +156,6 @@ func (s *state) Cheats(maxCost int) map[int]int {
 						continue
 					}
 					end := plus(start, coord{dx, dy})
-					if s.walls[end] {
-						continue
-					}
 					fmExit, ok := fromExit[end]
 					if !ok {
 						continue
