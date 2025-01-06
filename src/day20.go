@@ -136,12 +136,12 @@ func (s *state) CostFrom(source coord) map[coord]int {
 	return scores
 }
 
-func (s *state) Cheats(maxCost int) map[int]int {
+func (s *state) Cheats(maxCost int) int {
 	fromStart := s.CostFrom(s.start)
 	fromExit := s.CostFrom(s.exit)
 	base := fromStart[s.exit]
-	cheats := map[int]int{}
 
+	c := 0
 	for x := 0; x < s.size.x; x++ {
 		for y := 0; y < s.size.y; y++ {
 			start := coord{x, y}
@@ -161,37 +161,27 @@ func (s *state) Cheats(maxCost int) map[int]int {
 						continue
 					}
 					time := cost + fmStart + fmExit
-					cheats[base-time]++
+					if base-time >= 100 {
+						c++
+					}
 				}
 			}
 		}
 	}
 
-	return cheats
+	return c
 }
 
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
-		fromStart := s.CostFrom(s.start)
-		base := fromStart[s.exit]
 
-		cheats := s.Cheats(2)
-
-		c := 0
-		for i := 100; i <= base; i++ {
-			c += cheats[i]
-		}
+		c := s.Cheats(2)
 
 		// Part 1
 		fmt.Println("There are", c, "2ps cheats that save at least 100ps.")
 
-		cheats = s.Cheats(20)
-
-		c = 0
-		for i := 100; i <= base; i++ {
-			c += cheats[i]
-		}
+		c = s.Cheats(20)
 
 		// Part 2
 		fmt.Println("There are", c, "≤20ps cheats that save at least 100ps.")
