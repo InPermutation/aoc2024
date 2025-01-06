@@ -79,14 +79,18 @@ func plus(a, b coord) coord {
 	return coord{a.x + b.x, a.y + b.y}
 }
 
+var (
+	LEFT  = coord{-1, 0}
+	RIGHT = coord{1, 0}
+	UP    = coord{0, -1}
+	DOWN  = coord{0, 1}
+
+	LRUD = []coord{LEFT, RIGHT, UP, DOWN}
+)
+
 func (s *state) neighbors(k coord) []coord {
 	rv := []coord{}
-	for _, dir := range []coord{
-		coord{-1, 0},
-		coord{1, 0},
-		coord{0, -1},
-		coord{0, 1},
-	} {
+	for _, dir := range LRUD {
 		pos := plus(k, dir)
 		if s.walls[pos] || pos.x < 0 || pos.y < 0 || pos.x >= s.size.x || pos.y >= s.size.y {
 			continue
@@ -97,10 +101,9 @@ func (s *state) neighbors(k coord) []coord {
 	return rv
 }
 
-func (s *state) Cost() int {
-
-	frontier := map[coord]bool{s.start: true}
-	scores := map[coord]int{s.start: 0}
+func (s *state) CostFrom(source coord) map[coord]int {
+	frontier := map[coord]bool{source: true}
+	scores := map[coord]int{source: 0}
 	for len(frontier) > 0 {
 		for k := range frontier {
 			delete(frontier, k)
@@ -123,24 +126,39 @@ func (s *state) Cost() int {
 		}
 	}
 
-	return scores[s.exit]
+	return scores
 }
 
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		// Part 0
-		base := s.Cost()
+		fromStart := s.CostFrom(s.start)
+		fromExit := s.CostFrom(s.exit)
 
+		base := fromStart[s.exit]
 		cheats := map[int]int{}
 		for wall := range s.walls {
-			s.walls[wall] = false
+			ns := s.neighbors(wall)
+			if len(ns) < 2 {
+				continue
+			}
 
-			wo := s.Cost()
-			cheats[base-wo]++
+			first, second := ns[0], ns[1]
+			if first == plus(wall, LEFT) && second == plus(wall, RIGHT) {
+				time := fromStart[first] + 2 + fromExit[second]
+				cheats[base-time]++
+				time = fromStart[second] + 2 + fromExit[first]
+				cheats[base-time]++
+			}
 
-			s.walls[wall] = true
+			pen, ult := ns[len(ns)-2], ns[len(ns)-1]
+			if pen == plus(wall, UP) && ult == plus(wall, DOWN) {
+				time := fromStart[pen] + 2 + fromExit[ult]
+				cheats[base-time]++
+				time = fromStart[ult] + 2 + fromExit[pen]
+				cheats[base-time]++
+			}
 		}
 
 		c := 0
