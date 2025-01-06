@@ -75,6 +75,13 @@ func states() (rval []state) {
 	return
 }
 
+func abs(i int) int {
+	if i < 0 {
+		return -i
+	}
+	return i
+}
+
 func plus(a, b coord) coord {
 	return coord{a.x + b.x, a.y + b.y}
 }
@@ -129,43 +136,70 @@ func (s *state) CostFrom(source coord) map[coord]int {
 	return scores
 }
 
+func (s *state) Cheats(maxCost int) map[int]int {
+	fromStart := s.CostFrom(s.start)
+	fromExit := s.CostFrom(s.exit)
+	base := fromStart[s.exit]
+	cheats := map[int]int{}
+
+	for x := 0; x < s.size.x; x++ {
+		for y := 0; y < s.size.y; y++ {
+			start := coord{x, y}
+			if s.walls[start] {
+				continue
+			}
+			fmStart, ok := fromStart[start]
+			if !ok {
+				continue
+			}
+			for dy := -maxCost; dy <= maxCost; dy++ {
+				for dx := -maxCost; dx <= maxCost; dx++ {
+					cost := abs(dx) + abs(dy)
+					if cost > maxCost {
+						continue
+					}
+					end := plus(start, coord{dx, dy})
+					if s.walls[end] {
+						continue
+					}
+					fmExit, ok := fromExit[end]
+					if !ok {
+						continue
+					}
+					time := cost + fmStart + fmExit
+					cheats[base-time]++
+				}
+			}
+		}
+	}
+
+	return cheats
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
-
 		fromStart := s.CostFrom(s.start)
-		fromExit := s.CostFrom(s.exit)
-
 		base := fromStart[s.exit]
-		cheats := map[int]int{}
-		for wall := range s.walls {
-			ns := s.neighbors(wall)
-			if len(ns) < 2 {
-				continue
-			}
 
-			first, second := ns[0], ns[1]
-			if first == plus(wall, LEFT) && second == plus(wall, RIGHT) {
-				time := fromStart[first] + 2 + fromExit[second]
-				cheats[base-time]++
-				time = fromStart[second] + 2 + fromExit[first]
-				cheats[base-time]++
-			}
-
-			pen, ult := ns[len(ns)-2], ns[len(ns)-1]
-			if pen == plus(wall, UP) && ult == plus(wall, DOWN) {
-				time := fromStart[pen] + 2 + fromExit[ult]
-				cheats[base-time]++
-				time = fromStart[ult] + 2 + fromExit[pen]
-				cheats[base-time]++
-			}
-		}
+		cheats := s.Cheats(2)
 
 		c := 0
 		for i := 100; i <= base; i++ {
 			c += cheats[i]
 		}
 
-		fmt.Println("There are", c, "cheats that save at least 100 picoseconds.")
+		// Part 1
+		fmt.Println("There are", c, "2ps cheats that save at least 100ps.")
+
+		cheats = s.Cheats(20)
+
+		c = 0
+		for i := 100; i <= base; i++ {
+			c += cheats[i]
+		}
+
+		// Part 2
+		fmt.Println("There are", c, "≤20ps cheats that save at least 100ps.")
 	}
 }
