@@ -94,44 +94,54 @@ func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		for len(s.gates) > 0 {
-			found := false
-			for o, g := range s.gates {
-				if a, ok := s.wires[g.a]; ok {
-					if b, ok := s.wires[g.b]; ok {
-						var res bool
-						switch g.op {
-						default:
-							log.Fatal("unknown op", g)
-						case "AND":
-							res = a && b
-						case "OR":
-							res = a || b
-						case "XOR":
-							res = a != b
-						}
-						s.wires[o] = res
-						found = true
-						delete(s.gates, o)
-						break
-					}
-				}
-			}
-			if !found {
-				log.Fatal("no progress", s)
-			}
-		}
+		hiZ, res, bit := s.hiZ(), 0, 1
 
-		res := 0
-		for k, v := range s.wires {
-			if v && k[0] == 'z' {
-				i, err := strconv.Atoi(k[1:])
-				if err != nil {
-					panic(err)
-				}
-				res |= 1 << i
+		for z := 0; z <= hiZ; z++ {
+			sz := fmt.Sprintf("z%02d", z)
+			if s.eval(sz) {
+				res |= bit
 			}
+			bit <<= 1
 		}
 		fmt.Println(res)
 	}
+}
+
+func (s *state) eval(w string) bool {
+	if g, ok := s.gates[w]; ok {
+		a := s.eval(g.a)
+		b := s.eval(g.b)
+		switch g.op {
+		default:
+			panic(g)
+		case "AND":
+			return a && b
+		case "OR":
+			return a || b
+		case "XOR":
+			return a != b
+		}
+	} else if v, ok := s.wires[w]; ok {
+		return v
+	} else {
+		fmt.Println(s.gates)
+		fmt.Println(s.wires)
+		panic(w)
+	}
+}
+
+func (s *state) hiZ() (hi int) {
+	for g := range s.gates {
+		if g[0] == 'z' {
+			z, err := strconv.Atoi(string(g[1:]))
+			if err != nil {
+				log.Fatal("bad z", g)
+			}
+			if z > hi {
+				hi = z
+			}
+		}
+	}
+
+	return
 }
