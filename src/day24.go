@@ -77,8 +77,6 @@ func readFile(fname string) state {
 
 func states() (rval []state) {
 	for _, fname := range []string{
-		"input/24/sample",
-		"input/24/larger",
 		"input/24/input",
 	} {
 		s := readFile(fname)
@@ -90,11 +88,81 @@ func states() (rval []state) {
 	return
 }
 
+func expected(hiZ int, s0 *state) *state {
+	s := state{
+		wires: s0.wires,
+		gates: map[string]gate{},
+	}
+	s.gates["z00"] = gate{"x00", "XOR", "y00"}
+	s.gates["z01"] = gate{"v01", "XOR", "c01"}
+	s.gates["v01"] = gate{"x01", "XOR", "y01"}
+	s.gates["c01"] = gate{"x00", "AND", "y00"}
+
+	for i := 2; i <= hiZ; i++ {
+		suffix := fmt.Sprintf("%02d", i)
+		s.gates["z"+suffix] = gate{"v" + suffix, "XOR", "c" + suffix}
+		s.gates["v"+suffix] = gate{"x" + suffix, "XOR", "y" + suffix}
+		s.gates["c"+suffix] = gate{"p" + suffix, "OR", "q" + suffix}
+		z0 := s.gates[fmt.Sprintf("z%02d", i-1)]
+		s.gates["p"+suffix] = gate{z0.a, "AND", z0.b}
+		v0 := s.gates[fmt.Sprintf("v%02d", i-1)]
+		s.gates["q"+suffix] = gate{v0.a, "AND", v0.b}
+	}
+
+	return &s
+}
+
+var empty gate
+
+func descend(ex, s *state, ez, sz string) error {
+	exg := ex.gates[ez]
+	sg := s.gates[sz]
+	if exg == empty && sg == empty {
+		if ez != sz {
+			return fmt.Errorf("wire mismatch: %q != %q", ez, sz)
+		}
+		return nil
+	}
+	if exg == empty && sg != empty {
+		return fmt.Errorf("empty exg, nonempty %q", sg)
+	}
+	if exg != empty && sg == empty {
+		return fmt.Errorf("empty " + sz + " nonempty exg")
+	}
+	if exg.op != sg.op {
+		return fmt.Errorf("op mismatch: %q != %q. (%v, %v)", exg.op, sg.op, ez, sz)
+	}
+
+	eaa := descend(ex, s, exg.a, sg.a)
+	ebb := descend(ex, s, exg.b, sg.b)
+	if eaa == ebb && eaa == nil {
+		return nil
+	}
+	eab := descend(ex, s, exg.a, sg.b)
+	eba := descend(ex, s, exg.b, sg.a)
+	if eab == nil && eba == nil {
+		return nil
+	}
+	if eaa == nil {
+		return ebb
+	}
+	if ebb == nil {
+		return eaa
+	}
+	if eab == nil {
+		return eba
+	}
+	if eba == nil {
+		return eab
+	}
+	return fmt.Errorf("mismatch at %q %v", ez, sz)
+}
+
 func main() {
 	for _, s := range states() {
-		fmt.Println(s.fname)
-
+		//fmt.Println(s.fname)
 		hiZ, res, bit := s.hiZ(), 0, 1
+		ex := expected(hiZ, &s)
 
 		for z := 0; z <= hiZ; z++ {
 			sz := fmt.Sprintf("z%02d", z)
@@ -102,9 +170,65 @@ func main() {
 				res |= bit
 			}
 			bit <<= 1
+			// z16 = AND
+			// z20 = AND
+			// z33 = OR
+			// z45 = OR
+			// dkb =
+			exd := ex.Debug(sz)
+			dbg := s.Debug(sz)
+
+			fmt.Println(dbg)
+			if exd == "Quuahuhs" && exd != dbg {
+				err := descend(ex, &s, sz, sz)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
 		}
-		fmt.Println(res)
+
+		//fmt.Println(res)
 	}
+}
+
+func (s *state) Debug(w string) string {
+	if g, ok := s.gates[w]; ok {
+		if w[0] == 'Z' {
+			panic(w)
+			if g.op != "XOR" {
+				return "must be XOR: " + w
+			}
+			if w == "z00" {
+				return ""
+			}
+			a, b := g.a, g.b
+			ga, gb := s.gates[a], s.gates[b]
+			if ga.op != "XOR" && gb.op == "XOR" || gb.op != "OR" && ga.op == "OR" {
+				a, b = b, a
+				ga, gb = gb, ga
+			}
+			rval := ""
+			if ga.op != "XOR" {
+				rval += "must have XOR child: " + w + " / " + a + " " + ga.op + "\n"
+			}
+			if gb.op != "OR" {
+				rval += "must have OR child: " + w + "/ " + b + " " + gb.op + "\n"
+			}
+
+			if len(rval) != 0 {
+				return rval
+			}
+
+		}
+
+		sa := s.Debug(g.a)
+		sb := s.Debug(g.b)
+		if sa < sb {
+			sa, sb = sb, sa
+		}
+		return fmt.Sprintf("{%q: [%v, %v]}", g.op, sa, sb)
+	}
+	return fmt.Sprintf("%q", w)
 }
 
 func (s *state) eval(w string) bool {
