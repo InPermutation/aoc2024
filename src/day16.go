@@ -231,11 +231,19 @@ func (s *state) dijkstras(
 	return
 }
 
+func mark(onFast map[coord]bool, r reindeer, prev map[reindeer][]reindeer) {
+	onFast[r.pos] = true
+	for _, nr := range prev[r] {
+		mark(onFast, nr, prev)
+	}
+
+}
+
 func main() {
 	for _, s := range states() {
 		fmt.Println(s.fname)
 
-		dist, _ := s.dijkstras(s.reindeer)
+		dist, prev := s.dijkstras(s.reindeer)
 
 		exits := []int{}
 		for _, d := range directions {
@@ -256,5 +264,20 @@ func main() {
 
 		// Part 1
 		fmt.Println("min score: ", part1)
+
+		// Part 2
+		onFast := map[coord]bool{
+			s.reindeer.pos: true,
+		}
+
+		for _, d := range directions {
+			exit := reindeer{s.exit, d}
+			if dist[exit] != part1 {
+				continue
+			}
+			mark(onFast, exit, prev)
+		}
+
+		fmt.Println("tiles on a fastest route: ", len(onFast))
 	}
 }
