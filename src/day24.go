@@ -148,8 +148,11 @@ func main() {
 			fmt.Println("warn: z00 not equiv. expected ", gate{"x00", "XOR", "y00"}, "; got ", z00)
 		}
 
-		// ...and for z01, which should be vNN XOR (x00 AND y00)
+		// ...and for z01, which should be v01 XOR (x00 AND y00)
 		z01 := s.gates["z01"]
+		v01 := gate{"x01", "XOR", "y01"}
+		// call (x00 AND y00) "c01" for the recursion to work
+		c01 := gate{"x00", "AND", "y00"}
 
 		if z01.op == "XOR" {
 			na, nb := z01.a, z01.b
@@ -158,9 +161,9 @@ func main() {
 				na, nb = nb, na
 				a, b = b, a
 			}
-			if gateEquiv(a, gate{"x01", "XOR", "y01"}, equiv) {
+			if gateEquiv(a, v01, equiv) {
 				// we could set equiv[na]="v01" here, but it'll be set later
-				if gateEquiv(b, gate{"x00", "AND", "y00"}, equiv) {
+				if gateEquiv(b, c01, equiv) {
 					equiv["z01"] = "z01"
 				}
 			}
@@ -264,6 +267,11 @@ func main() {
 			if v[0] == 'c' {
 				cs[v] = k
 			}
+		}
+		if q01, ok := qs["q01"]; ok {
+			cs["c01"] = q01
+		} else {
+			fmt.Println("no q01 to turn into c01")
 		}
 		// There should be a 'cNN' for all NN
 		for z := 1; z <= hiZ; z++ {
