@@ -90,15 +90,19 @@ func states() (rval []state) {
 
 // Check if two gates are equivalent
 func gateEquiv(actual, expected gate, equiv map[string]string) bool {
+	e := gate{equiv[actual.a], actual.op, equiv[actual.b]}
+	return gateEqual(e, expected)
+}
+
+func gateEqual(actual, expected gate) bool {
 	if actual.op != expected.op {
 		return false
 	}
-	e := gate{equiv[actual.a], actual.op, equiv[actual.b]}
 
-	if e.a != expected.a && e.b != expected.a {
+	if actual.a != expected.a && actual.b != expected.a {
 		return false
 	}
-	if e.a != expected.b && e.b != expected.b {
+	if actual.a != expected.b && actual.b != expected.b {
 		return false
 	}
 	return true
@@ -134,11 +138,11 @@ func main() {
 		// 'zNN' is output. equiv["zNN"] is set when it's completely equivalent
 
 		// my notation:
-		// z[NN-1].a AND z[NN-1].b -> pNN.
-		// v[NN-1].a AND v[NN-1].b -> qNN.
-		// cNN is carry. pNN OR qNN -> cNN.
-		// vNN is half-add. xNN XOR yNN -> vNN.
-		// vNN XOR cNN -> zNN.
+		// z[NN-1].a AND z[NN-1].b -> pNN.       # VALIDATED, ps
+		// v[NN-1].a AND v[NN-1].b -> qNN.       # VALIDATED, qs
+		// cNN is carry. pNN OR qNN -> cNN.      # PARTIAL VALIDATED, cs
+		// vNN is half-add. xNN XOR yNN -> vNN.  # VALIDATED, vs
+		// vNN XOR cNN -> zNN.                   # VALIDATED, zs
 
 		// ...except for z00,
 		z00 := s.gates["z00"]
@@ -252,13 +256,14 @@ func main() {
 			}
 			if qeq, ok := equiv[nb]; ok {
 				nn, err := strconv.Atoi(qeq[1:])
+				cnn := fmt.Sprintf("c%02d", nn)
 				if err == nil && qeq[0] == 'q' {
-					equiv[name] = fmt.Sprintf("c%02d", nn)
+					equiv[name] = cnn
 				} else {
-					fmt.Println(name, g, "would be cNN but wrong qeq", qeq, nn, err)
+					fmt.Println(name, g, "would be", cnn, "but wrong qeq=", qeq, "/", nb, "; nn, err:=", nn, err)
 				}
 			} else {
-				fmt.Println("no qNN for cNN", name, g)
+				fmt.Println("no qNN for cNN", name, g, ", equivs: ", equiv[na], ",", equiv[nb])
 			}
 		}
 
@@ -280,13 +285,97 @@ func main() {
 				fmt.Println(cc, " cc not found")
 			}
 		}
-		// TODO: identify pNNs
+
+		for name, g := range s.gates {
+			if name == "z01" {
+				continue
+			}
+			if g.op != "XOR" {
+				continue
+			}
+			if maybeV, ok := equiv[name]; ok {
+				if maybeV[0] != 'v' {
+					fmt.Println("weird equiv ", maybeV, name, "for", name, g)
+				}
+				// already a vNN
+				continue
+			}
+			ea, eb := equiv[g.a], equiv[g.b]
+			if ea == "" || eb == "" {
+				fmt.Println("unresolved possible z", name, g, equiv[g.a], ", ", equiv[g.b])
+				continue
+			} else if ea[1:] == eb[1:] && name[0] == 'z' {
+				equiv[name] = name
+			} else {
+				fmt.Println("unknown possible z", name, g, "equivs: ", ea, ",", eb)
+			}
+		}
+
+		zs := map[string]string{}
+		for k, v := range equiv {
+			if v[0] == 'z' {
+				zs[v] = k
+			}
+		}
+		// There should be a 'zNN' for all NN
+		for z := 0; z <= hiZ; z++ {
+			zz := fmt.Sprintf("z%02d", z)
+			if _, ok := zs[zz]; !ok {
+				fmt.Println(zz, " zz not found")
+			}
+		}
+
+		for name, g := range s.gates {
+			if g.op != "AND" {
+				continue
+			}
+			if _, ok := equiv[name]; ok {
+				continue
+			}
+			ea, eb := equiv[g.a], equiv[g.b]
+			if ea == "" || eb == "" {
+				continue
+			}
+			for zNN := range zs {
+				eg := s.gates[zNN]
+
+				if eg.a == g.a || eg.a == g.b {
+					if eg.b == g.a || eg.b == g.b {
+						nn, err := strconv.Atoi(zNN[1:])
+						if err != nil {
+							fmt.Println(zNN, err)
+							continue
+						}
+						equiv[name] = fmt.Sprintf("p%02d", nn+1)
+						break
+					}
+				}
+			}
+
+			if _, ok := equiv[name]; !ok {
+				fmt.Println(name, g, "probably a pNN, but no equiv found")
+			}
+		}
+		ps := map[string]string{}
+		for k, v := range equiv {
+			if v[0] == 'p' {
+				ps[v] = k
+			}
+		}
+		// There should be a 'pNN' for all NN
+
+		for z := 2; z <= hiZ; z++ {
+			pp := fmt.Sprintf("p%02d", z)
+			if _, ok := ps[pp]; !ok {
+				fmt.Println(pp, " pp not found")
+			}
+		}
 
 		// zHI is equivalent to a carry (zHI===cHI)
 		zHI := s.gates[fmt.Sprintf("z%02d", hiZ)]
 		cHI := cs[fmt.Sprintf("c%02d", hiZ)]
-		if !gateEquiv(zHI, s.gates[cHI], equiv) {
-			// TODO: fmt.Println("zHI must be cHI ", zHI, cHI)
+		if !gateEqual(zHI, s.gates[cHI]) {
+			fmt.Println("zHI", zHI, "must be cHI ", cHI, s.gates[cHI])
 		}
 	}
 }
