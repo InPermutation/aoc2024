@@ -195,23 +195,11 @@ func main() {
 		for z := 1; z < hiZ; z++ {
 			vv := fmt.Sprintf("v%02d", z)
 			if _, ok := vs[vv]; !ok {
-				fmt.Println(vv, "not found")
+				fmt.Println(vv, " vv not found")
 			}
 		}
-		// zHI must be cHI
-		zHI := s.gates[fmt.Sprintf("z%02d", hiZ)]
-		if zHI.op != "OR" {
-			fmt.Println("zHI must be OR; ", zHI)
-			// TODO: finish validating zHI
-		}
 
-		// There should be a 'qNN' for all NN
-		//deleteme:
-		// v[NN-1].a AND v[NN-1].b -> qNN.
-		// cNN is carry. pNN OR qNN -> cNN.
-		// vNN is half-add. xNN XOR yNN -> vNN.
-		// /deleteme
-
+		// Try to map all the qNNs:
 		for name, g := range s.gates {
 			if g.op != "AND" {
 				continue
@@ -226,7 +214,71 @@ func main() {
 				fmt.Println(name, g, "would be qNN but has mismatched xNN, yMM")
 				continue
 			}
-			fmt.Println(name, g, " is probably a qNN")
+			n, err := strconv.Atoi(string(g.a[1:]))
+			if err != nil {
+				fmt.Println("non-numeric; but would be qNN: ", name, g)
+				continue
+			}
+			qname := fmt.Sprintf("q%02d", n+1)
+			equiv[name] = qname
+		}
+		qs := map[string]string{}
+		for k, v := range equiv {
+			if v[0] == 'q' {
+				qs[v] = k
+			}
+		}
+		// There should be a 'qNN' for all NN
+		for z := 1; z <= hiZ; z++ {
+			qq := fmt.Sprintf("q%02d", z)
+			if _, ok := qs[qq]; !ok {
+				fmt.Println(qq, " qq not found")
+			}
+		}
+
+		// Try to map all the cNNs:
+		for name, g := range s.gates {
+			if g.op != "OR" {
+				continue
+			}
+			na, nb := g.a, g.b
+			a, b := s.gates[na], s.gates[nb]
+			if _, ok := equiv[na]; ok {
+				na, nb = nb, na
+				a, b = b, a
+			}
+			if qeq, ok := equiv[nb]; ok {
+				nn, err := strconv.Atoi(qeq[1:])
+				if err == nil && qeq[0] == 'q' {
+					equiv[name] = fmt.Sprintf("c%02d", nn)
+				} else {
+					fmt.Println(name, g, "would be cNN but wrong qeq", qeq, nn, err)
+				}
+			} else {
+				fmt.Println("no qNN for cNN", name, g)
+			}
+		}
+
+		cs := map[string]string{}
+		for k, v := range equiv {
+			if v[0] == 'c' {
+				cs[v] = k
+			}
+		}
+		// There should be a 'cNN' for all NN
+		for z := 1; z <= hiZ; z++ {
+			cc := fmt.Sprintf("c%02d", z)
+			if _, ok := cs[cc]; !ok {
+				fmt.Println(cc, " cc not found")
+			}
+		}
+		// TODO: identify pNNs
+
+		// zHI is equivalent to a carry (zHI===cHI)
+		zHI := s.gates[fmt.Sprintf("z%02d", hiZ)]
+		cHI := cs[fmt.Sprintf("c%02d", hiZ)]
+		if !gateEquiv(zHI, s.gates[cHI], equiv) {
+			// TODO: fmt.Println("zHI must be cHI ", zHI, cHI)
 		}
 	}
 }
