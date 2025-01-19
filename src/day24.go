@@ -88,81 +88,26 @@ func states() (rval []state) {
 	return
 }
 
-func expected(hiZ int, s0 *state) *state {
-	s := state{
-		wires: s0.wires,
-		gates: map[string]gate{},
+// Check if two gates are equivalent
+func gateEquiv(actual, expected gate, equiv map[string]string) bool {
+	if actual.op != expected.op {
+		return false
 	}
-	s.gates["z00"] = gate{"x00", "XOR", "y00"}
-	s.gates["z01"] = gate{"v01", "XOR", "c01"}
-	s.gates["v01"] = gate{"x01", "XOR", "y01"}
-	s.gates["c01"] = gate{"x00", "AND", "y00"}
+	e := gate{equiv[actual.a], actual.op, equiv[actual.b]}
 
-	for i := 2; i <= hiZ; i++ {
-		suffix := fmt.Sprintf("%02d", i)
-		s.gates["z"+suffix] = gate{"v" + suffix, "XOR", "c" + suffix}
-		s.gates["v"+suffix] = gate{"x" + suffix, "XOR", "y" + suffix}
-		s.gates["c"+suffix] = gate{"p" + suffix, "OR", "q" + suffix}
-		z0 := s.gates[fmt.Sprintf("z%02d", i-1)]
-		s.gates["p"+suffix] = gate{z0.a, "AND", z0.b}
-		v0 := s.gates[fmt.Sprintf("v%02d", i-1)]
-		s.gates["q"+suffix] = gate{v0.a, "AND", v0.b}
+	if e.a != expected.a && e.b != expected.a {
+		return false
 	}
-
-	return &s
-}
-
-var empty gate
-
-func descend(ex, s *state, ez, sz string) error {
-	exg := ex.gates[ez]
-	sg := s.gates[sz]
-	if exg == empty && sg == empty {
-		if ez != sz {
-			return fmt.Errorf("wire mismatch: %q != %q", ez, sz)
-		}
-		return nil
+	if e.a != expected.b && e.b != expected.b {
+		return false
 	}
-	if exg == empty && sg != empty {
-		return fmt.Errorf("empty exg, nonempty %q", sg)
-	}
-	if exg != empty && sg == empty {
-		return fmt.Errorf("empty " + sz + " nonempty exg")
-	}
-	if exg.op != sg.op {
-		return fmt.Errorf("op mismatch: %q != %q. (%v, %v)", exg.op, sg.op, ez, sz)
-	}
-
-	eaa := descend(ex, s, exg.a, sg.a)
-	ebb := descend(ex, s, exg.b, sg.b)
-	if eaa == ebb && eaa == nil {
-		return nil
-	}
-	eab := descend(ex, s, exg.a, sg.b)
-	eba := descend(ex, s, exg.b, sg.a)
-	if eab == nil && eba == nil {
-		return nil
-	}
-	if eaa == nil {
-		return ebb
-	}
-	if ebb == nil {
-		return eaa
-	}
-	if eab == nil {
-		return eba
-	}
-	if eba == nil {
-		return eab
-	}
-	return fmt.Errorf("mismatch at %q %v", ez, sz)
+	return true
 }
 
 func main() {
 	for _, s := range states() {
-		//fmt.Println(s.fname)
+		fmt.Println(s.fname)
 		hiZ, res, bit := s.hiZ(), 0, 1
-		ex := expected(hiZ, &s)
 
 		for z := 0; z <= hiZ; z++ {
 			sz := fmt.Sprintf("z%02d", z)
@@ -170,65 +115,120 @@ func main() {
 				res |= bit
 			}
 			bit <<= 1
-			// z16 = AND
-			// z20 = AND
-			// z33 = OR
-			// z45 = OR
-			// dkb =
-			exd := ex.Debug(sz)
-			dbg := s.Debug(sz)
+		}
 
-			fmt.Println(dbg)
-			if exd == "Quuahuhs" && exd != dbg {
-				err := descend(ex, &s, sz, sz)
-				if err != nil {
-					fmt.Println(err)
+		// Part 1
+		fmt.Println(res)
+
+		// Define an equivalence between the input and my expected notation.
+		equiv := map[string]string{}
+
+		// existing notation:
+		// 'xNN', 'yNN' are inputs
+		for z := 0; z <= hiZ; z++ {
+			xg := fmt.Sprintf("x%02d", z)
+			equiv[xg] = xg
+			yg := fmt.Sprintf("y%02d", z)
+			equiv[yg] = yg
+		}
+		// 'zNN' is output. equiv["zNN"] is set when it's completely equivalent
+
+		// my notation:
+		// z[NN-1].a AND z[NN-1].b -> pNN.
+		// v[NN-1].a AND v[NN-1].b -> qNN.
+		// cNN is carry. pNN OR qNN -> cNN.
+		// vNN is half-add. xNN XOR yNN -> vNN.
+		// vNN XOR cNN -> zNN.
+
+		// ...except for z00,
+		z00 := s.gates["z00"]
+		if gateEquiv(z00, gate{"x00", "XOR", "y00"}, equiv) {
+			equiv["z00"] = "z00"
+		} else {
+			fmt.Println("warn: z00 not equiv. expected ", gate{"x00", "XOR", "y00"}, "; got ", z00)
+		}
+
+		// ...and for z01, which should be vNN XOR (x00 AND y00)
+		z01 := s.gates["z01"]
+
+		if z01.op == "XOR" {
+			na, nb := z01.a, z01.b
+			a, b := s.gates[na], s.gates[nb]
+			if a.op == "AND" && b.op == "XOR" {
+				na, nb = nb, na
+				a, b = b, a
+			}
+			if gateEquiv(a, gate{"x01", "XOR", "y01"}, equiv) {
+				// we could set equiv[na]="v01" here, but it'll be set later
+				if gateEquiv(b, gate{"x00", "AND", "y00"}, equiv) {
+					equiv["z01"] = "z01"
 				}
 			}
 		}
+		if _, ok := equiv["z01"]; !ok {
+			fmt.Println("warn: z01 not equiv. expected", gate{"v01", "XOR", "c01"}, "; got ", s.gates["z01"])
+		}
 
-		//fmt.Println(res)
-	}
-}
-
-func (s *state) Debug(w string) string {
-	if g, ok := s.gates[w]; ok {
-		if w[0] == 'Z' {
-			panic(w)
+		// Try to map all the vNNs:
+		for name, g := range s.gates {
 			if g.op != "XOR" {
-				return "must be XOR: " + w
+				continue
 			}
-			if w == "z00" {
-				return ""
+			if g.a[0] != 'x' && g.a[0] != 'y' {
+				continue
 			}
-			a, b := g.a, g.b
-			ga, gb := s.gates[a], s.gates[b]
-			if ga.op != "XOR" && gb.op == "XOR" || gb.op != "OR" && ga.op == "OR" {
-				a, b = b, a
-				ga, gb = gb, ga
+			if g.b[0] != 'x' && g.b[0] != 'y' {
+				continue
 			}
-			rval := ""
-			if ga.op != "XOR" {
-				rval += "must have XOR child: " + w + " / " + a + " " + ga.op + "\n"
+			if g.a[1:] != g.b[1:] {
+				continue
 			}
-			if gb.op != "OR" {
-				rval += "must have OR child: " + w + "/ " + b + " " + gb.op + "\n"
+			equiv[name] = "v" + g.a[1:]
+		}
+		vs := map[string]string{}
+		for k, v := range equiv {
+			if v[0] == 'v' {
+				vs[v] = k
 			}
-
-			if len(rval) != 0 {
-				return rval
+		}
+		// There should be a 'vNN' for all NN -- except hiZ (zHI is exactly cHI)
+		for z := 1; z < hiZ; z++ {
+			vv := fmt.Sprintf("v%02d", z)
+			if _, ok := vs[vv]; !ok {
+				fmt.Println(vv, "not found")
 			}
-
+		}
+		// zHI must be cHI
+		zHI := s.gates[fmt.Sprintf("z%02d", hiZ)]
+		if zHI.op != "OR" {
+			fmt.Println("zHI must be OR; ", zHI)
+			// TODO: finish validating zHI
 		}
 
-		sa := s.Debug(g.a)
-		sb := s.Debug(g.b)
-		if sa < sb {
-			sa, sb = sb, sa
+		// There should be a 'qNN' for all NN
+		//deleteme:
+		// v[NN-1].a AND v[NN-1].b -> qNN.
+		// cNN is carry. pNN OR qNN -> cNN.
+		// vNN is half-add. xNN XOR yNN -> vNN.
+		// /deleteme
+
+		for name, g := range s.gates {
+			if g.op != "AND" {
+				continue
+			}
+			if g.a[0] != 'x' && g.b[0] != 'x' {
+				continue
+			}
+			if g.a[0] != 'y' && g.b[0] != 'y' {
+				continue
+			}
+			if g.a[1:] != g.b[1:] {
+				fmt.Println(name, g, "would be qNN but has mismatched xNN, yMM")
+				continue
+			}
+			fmt.Println(name, g, " is probably a qNN")
 		}
-		return fmt.Sprintf("{%q: [%v, %v]}", g.op, sa, sb)
 	}
-	return fmt.Sprintf("%q", w)
 }
 
 func (s *state) eval(w string) bool {
@@ -254,6 +254,7 @@ func (s *state) eval(w string) bool {
 	}
 }
 
+// find the highest 'z' so we know how big our machine is
 func (s *state) hiZ() (hi int) {
 	for g := range s.gates {
 		if g[0] == 'z' {
