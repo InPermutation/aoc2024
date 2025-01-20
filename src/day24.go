@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -60,8 +61,20 @@ func readFile(fname string) state {
 		"z16": "hmk",
 		"fhp": "z20",
 		"z20": "fhp",
-		// TODO: 2 more...
+		"rvf": "tpc",
+		"tpc": "rvf",
 	}
+
+	rg := []string{}
+	for k := range swaps {
+		rg = append(rg, k)
+	}
+	slices.Sort(rg)
+	for _, v := range rg {
+		fmt.Printf("%s,", v)
+	}
+
+	fmt.Println()
 
 	s.gates = map[string]gate{}
 	for scanner.Scan() {
@@ -210,6 +223,9 @@ func main() {
 		vs := map[string]string{}
 		for k, v := range equiv {
 			if v[0] == 'v' {
+				if _, ok := vs[v]; ok {
+					fmt.Println("duplicate vs found", k, v, vs[v])
+				}
 				vs[v] = k
 			}
 		}
@@ -233,7 +249,7 @@ func main() {
 				continue
 			}
 			if g.a[1:] != g.b[1:] {
-				fmt.Println(name, g, "would be qNN but has mismatched xNN, yMM")
+				fmt.Println(name, g, "would be qNN but has mismatched xNN, yMM", g.a[1:], g.b[1:])
 				continue
 			}
 			n, err := strconv.Atoi(string(g.a[1:]))
@@ -247,6 +263,9 @@ func main() {
 		qs := map[string]string{}
 		for k, v := range equiv {
 			if v[0] == 'q' {
+				if _, ok := qs[v]; ok {
+					fmt.Println("duplicate qs found", k, v, qs[v])
+				}
 				qs[v] = k
 			}
 		}
@@ -265,7 +284,7 @@ func main() {
 			}
 			na, nb := g.a, g.b
 			a, b := s.gates[na], s.gates[nb]
-			if _, ok := equiv[na]; ok {
+			if qeq, ok := equiv[na]; ok && qeq[0] == 'q' {
 				na, nb = nb, na
 				a, b = b, a
 			}
@@ -285,10 +304,14 @@ func main() {
 		cs := map[string]string{}
 		for k, v := range equiv {
 			if v[0] == 'c' {
+				if _, ok := cs[v]; ok {
+					fmt.Println("duplicate cs found", k, v, cs[v])
+				}
 				cs[v] = k
 			}
 			if v == "c27" {
-				fmt.Println("c27:", k, v, s.gates[k])
+				fmt.Println("c27 is:", k, v, s.gates[k])
+				fmt.Printf("...%q, %q\n", equiv[s.gates[k].a], equiv[s.gates[k].b])
 			}
 		}
 		if q01, ok := qs["q01"]; ok {
@@ -336,6 +359,9 @@ func main() {
 		zs := map[string]string{}
 		for k, v := range equiv {
 			if v[0] == 'z' {
+				if _, ok := zs[v]; ok {
+					fmt.Println("duplicate zs found", k, v, zs[v])
+				}
 				zs[v] = k
 			}
 		}
@@ -384,6 +410,9 @@ func main() {
 		ps := map[string]string{}
 		for k, v := range equiv {
 			if v[0] == 'p' {
+				if _, ok := ps[v]; ok {
+					fmt.Println("duplicate ps found", k, v, ps[v])
+				}
 				ps[v] = k
 			}
 		}
