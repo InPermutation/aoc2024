@@ -52,6 +52,17 @@ func readFile(fname string) state {
 		log.Fatal(err)
 	}
 
+	swaps := map[string]string{
+		// Found by observation:
+		"fcd": "z33",
+		"z33": "fcd",
+		"hmk": "z16",
+		"z16": "hmk",
+		"fhp": "z20",
+		"z20": "fhp",
+		// TODO: 2 more...
+	}
+
 	s.gates = map[string]gate{}
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -61,7 +72,11 @@ func readFile(fname string) state {
 			log.Fatal(line)
 		}
 
-		s.gates[toks[4]] = gate{
+		t4 := toks[4]
+		if sw, ok := swaps[t4]; ok {
+			t4 = sw
+		}
+		s.gates[t4] = gate{
 			a:  toks[0],
 			op: toks[1],
 			b:  toks[2],
@@ -272,6 +287,9 @@ func main() {
 			if v[0] == 'c' {
 				cs[v] = k
 			}
+			if v == "c27" {
+				fmt.Println("c27:", k, v, s.gates[k])
+			}
 		}
 		if q01, ok := qs["q01"]; ok {
 			cs["c01"] = q01
@@ -305,7 +323,11 @@ func main() {
 				fmt.Println("unresolved possible z", name, g, equiv[g.a], ", ", equiv[g.b])
 				continue
 			} else if ea[1:] == eb[1:] && name[0] == 'z' {
-				equiv[name] = name
+				if ea[0] == 'c' || ea[0] == 'v' && eb[0] == 'c' || eb[0] == 'v' {
+					equiv[name] = name
+				} else {
+					fmt.Println("unknown likely z", name, g, "equivs: ", ea, ",", eb)
+				}
 			} else {
 				fmt.Println("unknown possible z", name, g, "equivs: ", ea, ",", eb)
 			}
@@ -339,21 +361,24 @@ func main() {
 			for zNN := range zs {
 				eg := s.gates[zNN]
 
-				if eg.a == g.a || eg.a == g.b {
-					if eg.b == g.a || eg.b == g.b {
-						nn, err := strconv.Atoi(zNN[1:])
-						if err != nil {
-							fmt.Println(zNN, err)
-							continue
-						}
-						equiv[name] = fmt.Sprintf("p%02d", nn+1)
-						break
+				ega := eg.a == g.a || eg.a == g.b
+				egb := eg.b == g.a || eg.b == g.b
+
+				if ega && egb {
+					nn, err := strconv.Atoi(zNN[1:])
+					if err != nil {
+						fmt.Println(zNN, err)
+						continue
 					}
+					equiv[name] = fmt.Sprintf("p%02d", nn+1)
+					break
+				} else if ega || egb {
+					fmt.Println([]string{g.a, g.b, eg.a, eg.b}, ega, egb)
 				}
 			}
 
 			if _, ok := equiv[name]; !ok {
-				fmt.Println(name, g, "probably a pNN, but no equiv found")
+				fmt.Println(name, g, "probably a pNN, but no equiv found", ea, eb)
 			}
 		}
 		ps := map[string]string{}
@@ -377,6 +402,8 @@ func main() {
 		if !gateEqual(zHI, s.gates[cHI]) {
 			fmt.Println("zHI", zHI, "must be cHI ", cHI, s.gates[cHI])
 		}
+
+		fmt.Println(equiv)
 	}
 }
 
